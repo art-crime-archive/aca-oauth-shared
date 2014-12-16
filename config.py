@@ -1,6 +1,5 @@
-# config.py
-
 from authomatic.providers import oauth2, oauth1, openid, gaeopenid
+import authomatic
 
 CONFIG = {
     
@@ -10,10 +9,9 @@ CONFIG = {
         'class_': oauth1.Twitter,
         
         # Twitter is an AuthorizationProvider so we need to set several other properties too:
-        # Do not place the secrets here if this file is in a public repository.
-        # Update the Secret entity in the DataStore instead
-        'consumer_key': '###################',
-        'consumer_secret': '#####################################',
+        'consumer_key': '########################',
+        'consumer_secret': '########################',
+        'id': authomatic.provider_id()
     },
     
     'fb': {
@@ -21,13 +19,12 @@ CONFIG = {
         'class_': oauth2.Facebook,
         
         # Facebook is an AuthorizationProvider too.
-        # Do not place the secrets here if this file is in a public repository.
-        # Update the Secret entity in the DataStore instead
-        'consumer_key': '##################',
-        'consumer_secret': '#############################################',
+        'consumer_key': '########################',
+        'consumer_secret': '########################',
+        'id': authomatic.provider_id(),
         
         # But it is also an OAuth 2.0 provider and it needs scope.
-        'scope': ['email', 'publish_stream', 'read_stream'],
+        'scope': ['user_about_me', 'email', 'publish_stream', 'read_stream'],
     },
     
     'gae_oi': {

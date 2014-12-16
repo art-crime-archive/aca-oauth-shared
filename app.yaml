@@ -1,11 +1,28 @@
-# app.yaml
-
-application: authomatic-simple-aca
-version: 0-2
+application: aca-oauth-test 
+version: 0-3-0
 runtime: python27
 api_version: 1
-threadsafe: true
+threadsafe: yes
 
 handlers:
-- url: /.*
+- url: /admin/.*
+  script: google.appengine.ext.admin.application
+  login: admin
+
+- url: /static
+  static_dir: static
+
+- url: /ArchiveService.*
+  script: services.app
+
+- url: .*
   script: main.app
+
+libraries:
+- name: webapp2
+  version: "2.5.1"
+- name: lxml
+  version: "2.3"
+
+builtins:
+- remote_api: on

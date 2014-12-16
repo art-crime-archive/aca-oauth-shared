@@ -1,0 +1,28 @@
+<div id="the-archive">
+	<div class="embed">{{embed}}</div>
+	<div class="title"><span class="author">{{author}}</span><span class="edit-links"> {{view_status}} {{edit_link}} </span></div>
+	<div class="below-video article"><pre>{{content}}</pre></div>
+	<div class="below-video tags">{{tags}}</div>
+	<div class="below-video comments">Comments:
+	  <table>
+		  <tfoot>
+			  <tr class="comment-add-{{article_id}}">
+				<td></td>
+				<td>
+				  <form class="comment-form" name="comment-form" article="" action="none" method="post">
+					<p>
+					  <textarea id="comment-text-{{article_id}}" class="comment-text hint" name="comment-text" title="add your comment..." style="overflow: hidden; word-wrap: break-word; resize: horizontal; height: 40px;"></textarea></p>
+				  </form>
+				</td>
+			  </tr>
+		  </tfoot>
+		  <tbody id="comment-table-{{article_id}}">
+			  <tr class="comment hidden" id="comment-{{article_id}}" article="{{article_id}}" comment-id="" author="">
+				  <td class="comment-info"></td>
+				  <td class="comment-display"><div><a href="" title="" class="comment-user"></a> <span class="comment-display"></span><br>
+				  <span class="comment-date" dir="ltr"><span title="comment date" class="comment-relativetime">0 minutes ago</span></span><span class="comment-delete delete-tag" title="delete this comment"></span></div></td>
+			  </tr>
+		  </tbody>
+	  </table>
+	</div>
+</div>

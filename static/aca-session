@@ -1,0 +1,10 @@
+<NotepadPlus>
+    <Session activeView="0">
+        <mainView activeIndex="2">
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="650" startPos="0" endPos="0" selMode="0" lang="Python" encoding="-1" filename="C:\Users\Dan\my_projects\app-engine\Python\art-crime-archive\main.py" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="2690" startPos="0" endPos="0" selMode="0" lang="HTML" encoding="-1" filename="C:\Users\Dan\my_projects\app-engine\Python\art-crime-archive\index.html" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="2690" startPos="0" endPos="0" selMode="0" lang="CSS" encoding="-1" filename="C:\Users\Dan\my_projects\app-engine\Python\art-crime-archive\static\css\art-crime-archive.css" />
+        </mainView>
+        <subView activeIndex="0" />
+    </Session>
+</NotepadPlus>

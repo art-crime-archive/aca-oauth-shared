@@ -10,7 +10,8 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
-- kind: Secret
-  ancestor: yes
+- kind: Articles
   properties:
-  - name: provider
+  - name: author
+  - name: date
+    direction: desc
