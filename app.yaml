@@ -1,4 +1,4 @@
-application: aca-oauth-test 
+application: art-crime-archive-test 
 version: 0-3-0
 runtime: python27
 api_version: 1
