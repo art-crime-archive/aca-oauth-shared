@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+		<html>
+		<head>
+		<title>Lesson 21: Easy AJAX Calls with jQuery</title>
+		<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.min.js"></script>
+		</head>
+		<body>
+		<h1>Lesson 21: Easy AJAX Calls with jQuery load()</h1>
+		
+		<p><a href="#">Click here to fetch HTML content</a></p>
+		
+		<div id="result">
+		
+		</div>
+		
+		<script type="text/javascript">
+		
+		//JavaScript AJAX code here
+		$(document).ready(function()
+		
+		{
+		
+		//Attach a handler to the click event
+		
+		//of the link on the page:
+		
+		$('a').click(function()
+		
+		{
+		
+		//Target the div with id of result
+		
+		//and load the content from the specified url
+		
+		//and the specified div element into it:
+		
+		$('#result').load('localhost:8087/# #content');
+		
+		});
+		
+		});
+		</script>
+			
+		</body>
+</html>
