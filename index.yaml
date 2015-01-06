@@ -15,3 +15,16 @@ indexes:
   - name: author
   - name: date
     direction: desc
+
+- kind: Articles
+  properties:
+  - name: author
+  - name: provider
+  - name: date
+    direction: desc
+
+- kind: Articles
+  properties:
+  - name: view
+  - name: date
+    direction: desc

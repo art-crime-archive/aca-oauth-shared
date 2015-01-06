@@ -26,6 +26,7 @@ from pickle import dumps, loads
 from authomatic import Authomatic
 from authomatic.adapters import Webapp2Adapter
 from config import CONFIG
+import Cookie
 
 authomatic = Authomatic(config=CONFIG, secret='some random secret string')
 
@@ -50,7 +51,7 @@ class Login(webapp2.RequestHandler):
                      self.response.set_cookie('user_name', urllib.quote(result.user.name))
                      self.response.set_cookie('user_email', result.user.email)
                      self.response.set_cookie('user_provider', provider_name)
-                
+                     
                      if result.user.credentials:
                          # Serialize credentials and store it as well.
                          serialized_credentials = result.user.credentials.serialize()
@@ -60,9 +61,12 @@ class Login(webapp2.RequestHandler):
                      self.response.set_cookie('error', "Missing User Name!")
             elif result.error:
                 self.response.set_cookie('error', urllib.quote(result.error.message))
-            
+            else:
+                self.response.set_cookie('error', 'No User!')
+        
             self.redirect('/')
-
+        self.response.set_cookie('error', 'No Result!')
+        self.redirect('/')
 
 class Logout(webapp2.RequestHandler):
     def get(self):
@@ -76,12 +80,88 @@ class Logout(webapp2.RequestHandler):
         # Redirect home.
         #self.redirect('./')
         self.redirect('/auth')
-		
-                # Welcome the user.
-                # self.response.write(u'<h1>Hi {}</h1>'.format(result.user.name))
-                # self.response.write(u'<h2>Your id is: {}</h2>'.format(result.user.id))
-                # self.response.write(u'<h2>Your email is: {}</h2>'.format(result.user.email))
 
+#new user model
+class oAuthUser:
+	def __init__(self,user_id,user_name,user_email,user_provider,user_credentials):
+		self.id = user_id
+		self.name = user_name
+		self.emailaddress = user_email
+		self.provider = user_provider
+		self.credentials = user_credentials	
+	def nickname(self):
+		return self.name
+	def email(self):
+		return self.email
+	def user_id(self):
+		return self.id
+	def federated_identity(self):
+		return self.id + self.provider
+	def federated_provider(self):
+		return self.provider
+	def isUser(self,user_name,user_provider):
+		return ((self.name == user_name) and (self.provider == user_provider))
+	#not working?
+	def toCookie(self):
+		cookie = Cookie.SimpleCookie()
+		cookie.load(cookie_string)
+		cookie['user_id'] = self.id
+		cookie['user_name'] = urllib.quote(self.name)
+		cookie['user_email'] = self.emailaddress
+		cookie['user_provider'] = self.provider
+		cookie['credentials'] = self.credentials
+	@classmethod
+	def fromCookie(self):
+		cookie_string = os.environ.get('HTTP_COOKIE')
+		if cookie_string:
+			cookie = Cookie.SimpleCookie()
+			cookie.load(cookie_string)
+			try:
+				user_id = cookie['user_id'].value
+			except:
+				user_id = None
+			try:
+				user_name = urllib.unquote(cookie['user_name'].value)
+			except:
+				user_name = None
+			try:
+				user_email = cookie['user_email'].value
+			except:
+				user_email = None
+			try:
+				user_provider = cookie['user_provider'].value
+			except:
+				user_provider = None
+			try:
+				credentials = cookie['credentials'].value
+			except:
+				credentials = None
+			return self(user_id, user_name, user_email, user_provider, credentials)
+		else:
+			return None
+	@classmethod
+	def fromAuthomatic(self, user, provider):
+		if user.credentials:
+			sc = user.credentials.serialize()
+		else:
+			sc = None
+		return self(user.id,user.name,user.email,provider,sc)
+		
+#new user service
+class oAuthUsers():
+	@classmethod
+	def get_oAuth_user(self):
+		return oAuthUser.fromCookie().nickname()
+	@classmethod
+	def get_current_user(self):
+		return oAuthUser.fromCookie()
+	@classmethod
+	def create_login_url(self,urlpath=None):
+		return '/auth'
+	@classmethod
+	def create_logout_url(self,urlpath=None):
+		return '/logout'
+		
 class Articles(db.Model):
   """Models an individual Archive entry"""
   author = db.StringProperty()
@@ -91,8 +171,8 @@ class Articles(db.Model):
   tags = db.TextProperty()
   comments = db.ListProperty(db.Text)
   view = db.StringProperty() #Publish, Preview or Retract
-  provider = db.StringProperty() #Source (Facebook, Twitter...etc)
   date = db.DateTimeProperty(auto_now_add=True)
+  provider = db.StringProperty(default='gae_oi') #Source (Facebook, Twitter...etc)
 
 def archive_key(Archive_name=None):
   """Constructs a Datastore key for an Archive entity."""
@@ -144,10 +224,15 @@ def format_comments(comments=None, article_id=None):
 def format_article(article, all_articles):
     edit_link = ''
     view_status = ''
-    if str(users.get_current_user()) == article.author:
-      edit_link = '<a class="links" href="/edit-article-form?id=%s">edit</a>' % article.key().id()
-      if article.view != 'Publish':
-         view_status = '<a class="view-status" href="/edit-article-form?id=%s">not published</a>' % (article.key().id())
+    user = oAuthUser.fromCookie()
+    if user:	
+      if user.isUser(article.author,article.provider):
+        edit_link = '<a class="links" href="/edit-article-form?id=%s">edit</a>' % article.key().id()
+        if article.view != 'Publish':
+           view_status = '<a class="view-status" href="/edit-article-form?id=%s">not published</a>' % (article.key().id())
+      else:
+        edit_link = 'not user, %s vs %s' % (article.author,user.nickname())
+        view_status = '%s vs %s' % (article.provider,user.provider)
     #todo - move to article template file
     all_articles += '<div class="embed">%s</div>' % article.embed
     all_articles += '<div class="title"> <a class="article-link no-ajax" href="/article?id=%s">%s</a> ' % (article.key().id(), article.title)
@@ -158,7 +243,7 @@ def format_article(article, all_articles):
     all_articles += format_comments(article.comments, article.key().id())
     return all_articles
 	
-def get_articles(id=None, author=None, limit=None, bookmark=None, provider=None):
+def get_articles(id=None, author=None, limit=None, bookmark=None, provider=None, view=None):
   """Retrieves articles from Archive entity and composes HTML."""
   if not limit:
     limit = 10
@@ -170,6 +255,9 @@ def get_articles(id=None, author=None, limit=None, bookmark=None, provider=None)
 #Prevent clashes
   if provider:
     articles = articles.filter('provider =', provider)
+
+  if view:
+    articles = articles.filter('view =', view)
 
   next = None
   if bookmark:
@@ -199,25 +287,31 @@ class MainPage(webapp2.RequestHandler):
   def get(self):
     style = ''
     #user = users.get_current_user()
-	
+    user = oAuthUser.fromCookie()
 	#Pull user data from cookies
-    serialized_credentials = self.request.cookies.get('credentials')
-    user_id = self.request.cookies.get('user_id')
-    user_name = urllib.unquote(self.request.cookies.get('user_name', ''))
-    user_provider = self.request.cookies.get('user_provider')
     error = urllib.unquote(self.request.cookies.get('error', ''))
-	
-    #Checking cookies for login info
     if error:
-      greeting = 'Sign in with: <a id="not-signed-in" class="sign-in" href="/auth">Login</a>'
+      user_id = None
       nickname = ''
+    elif user:
+      self.response.delete_cookie('error')
+      error = None
+      nickname = user.nickname()
+      user_id = user.id
+      user_provider = user.provider
+    else:
+      nickname = ''
+      user_id = None
+
+    if error:
+      greeting = '%s: <a id="not-signed-in" class="sign-in" href="/auth">Login</a>' % (error)
+      nickname = ''	  
     elif user_id:
-      nickname = user_name
       greeting = ('<div class="signed-in" nickname="%s"> %s <a class="sign-out" href="%s">(sign out)</a></div>' % (nickname, nickname, "/logout"))
     else:
       greeting = 'Sign in with: <a id="not-signed-in" class="sign-in" href="/auth">Login</a>'
       nickname = ''
-
+    self.response.delete_cookie('error')
     content = 'No content for this URL'
     content_id =  self.request.path[1:]
 
@@ -232,12 +326,12 @@ class MainPage(webapp2.RequestHandler):
 	
 	#Should be dynamic?
     if self.request.path[:12] == '/the-archive':
-      for id in open('archive-list.txt', 'r').read().split():
-	    content += format_article(Articles().get_by_id(id, parent=archive_key()), '')
+      content = get_articles(limit = self.request.get('limit'),
+                             bookmark = self.request.get('bookmark'),
+                             view = 'Publish')
                              
     if self.request.path[:12] == '/recent':
-      content = get_articles(limit = self.request.get('limit'),
-                             bookmark = self.request.get('bookmark'))
+      content = get_articles(view = 'Publish')
                              
     elif self.request.path == '/test':
 	  content = ''
@@ -291,17 +385,14 @@ class CreateArticleForm(webapp2.RequestHandler):
   def get(self):
     #user = users.get_current_user()
     #Pull user data from cookies
-    serialized_credentials = self.request.cookies.get('credentials')
-    user_id = self.request.cookies.get('user_id')
-    user_name = urllib.unquote(self.request.cookies.get('user_name', ''))
     error = urllib.unquote(self.request.cookies.get('error', ''))
-	
+    user = oAuthUser.fromCookie()
     #Checking cookies for login info
     if error:
-      greeting = 'Sign in with: <a id="not-signed-in" class="sign-in" href="/auth">Login</a>'
+      greeting = '%s: <a id="not-signed-in" class="sign-in" href="/auth">Login</a>' % (error)
       nickname = ''
-    elif user_id:
-      nickname = user_name
+    elif user:
+      nickname = user.nickname()
       greeting = ('<div class="signed-in" nickname="%s"> %s <a class="sign-out" href="%s">(sign out)</a></div>' % (nickname, nickname, "/logout"))
     else:
       greeting = 'Sign in with: <a id="not-signed-in" class="sign-in" href="/auth">Login</a>'
@@ -327,27 +418,22 @@ class CreateArticleForm(webapp2.RequestHandler):
           </div>
           """ % self.request.path[1:])
 
-
 class PublishArticle(webapp2.RequestHandler):
   def post(self):
-    #Pull user data from cookies
-    serialized_credentials = self.request.cookies.get('credentials')
-    user_id = self.request.cookies.get('user_id')
-    user_name = urllib.unquote(self.request.cookies.get('user_name', ''))
-    error = urllib.unquote(self.request.cookies.get('error', ''))
-	
+    user = oAuthUser.fromCookie()
     if self.request.get('id') is not '':
       article_id = int(self.request.get('id'))
       article = Articles(parent=archive_key()).get_by_id(article_id, parent=archive_key())
     else:
       article = Articles(parent=archive_key())
     #must be logged in so the author must be
-    article.author = user_name #users.get_current_user().nickname()
+    article.author = user.nickname() #users.get_current_user().nickname()
     article.embed = self.request.get('embed-code')
     article.title = self.request.get('title')
     article.content = self.request.get('content')
     article.tags = self.request.get('tags')
     article.view = self.request.get('view')
+    article.provider = user.provider
     article.put()
     if article.view == 'Preview' or article.view == 'Retract':
       return self.redirect('/my-articles')
@@ -357,30 +443,20 @@ class EditArticleForm(webapp2.RequestHandler):
   def get(self):
     article_id = int(self.request.get('id'))
     article = Articles(parent=archive_key()).get_by_id(article_id, parent=archive_key())
-    
-    #user = users.get_current_user()
-    #if not user:
-    #  return self.redirect('/auth')
-	
-	#pull user info
-    serialized_credentials = self.request.cookies.get('credentials')
-    user_id = self.request.cookies.get('user_id')
-    user_name = urllib.unquote(self.request.cookies.get('user_name', ''))
+    user = oAuthUser.fromCookie()
     error = urllib.unquote(self.request.cookies.get('error', ''))
 	
 	#check login
     if error:
-      greeting = 'Sign in with: <a id="not-signed-in" class="sign-in" href="/auth">Login</a>'
-      nickname = ''
-    elif user_id:
-      nickname = user_name
+      return self.redirect('/auth')
+    elif user.id:
+      nickname = user.nickname()
       greeting = ('<div class="signed-in" nickname="%s"> %s <a class="sign-out" href="%s">(sign out)</a></div>' % (nickname, nickname, "/logout"))
     else:
-      greeting = 'Sign in with: <a id="not-signed-in" class="sign-in" href="/auth">Login</a>'
-      nickname = ''
-	
-    if nickname == '':
-        return self.redirect('/auth')
+      return self.redirect('/auth')
+    
+    if not (user.isUser(article.author,article.provider) or user.isAdmin()):
+      return self.redirect('/auth')
 	
     self.response.out.write("""
         <div id="%s-id-%s" class="center-stage">
