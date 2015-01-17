@@ -1,19 +1,24 @@
 /*    <!-- The Art Crive Archive styles -->  */
 body{
+/*  padding-top: 140px; */
   background-color: white;  
  }
- 
 .version-info {
   float: right;
   color: #666;
-
 }
 .navbar-mod{
   margin: 0px;
 } 
+.navbar-background{
+  background-color: white;
+  padding-bottom: 10px;  
+} 
+
 .banner{
   position: relative;
   margin-bottom: 10px;
+
 /*  background-image:url(../img/seamless_patterns_14.jpg); */
 }
 .logo{
@@ -91,7 +96,7 @@ div[class*="side-bar"]{
   font-size: 18px;
   font-weight: bold;
 }
-.author {
+.author , .author-link, .author-link:hover{
   margin: 0px;
   padding: 0px;
   color: #000;

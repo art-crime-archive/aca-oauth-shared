@@ -14,7 +14,7 @@
   <tbody id="comment-table-{{article_id|safe}}">
     <tr  class="comment" id="comment-{{article_id|safe}}-{{comment_id|safe}}" article="{{article_id|safe}}" comment-id="{{comment_id|safe}}" author="{{nickname|safe}}" style="">
       <td class="comment-info"></td>
-      <td class="comment-display"><div><a href={{user_url|safe}} title={{user_activity|safe}} class="comment-user">{{nickname|safe}} </a><span class="comment-display">{{comment_display}}</span><br /><span class="comment-date" dir="ltr"><span title="{{comment_date|date:"M d Y"}}" class="comment-relativetime">{{comment_date|timesince}} ago</span></a></span><span class="comment-delete delete-tag" title="delete this comment"></span></div></td>
+      <td class="comment-display"><div><a href="{{user_url|safe}}" title="{{user_activity|safe}}" class="no-ajax comment-user">{{nickname|safe}} </a><span class="comment-display">{{comment_display}}</span><br /><span class="comment-date" dir="ltr"><span title="{{comment_date|date:"M d Y"}}" class="comment-relativetime">{{comment_date|timesince}} ago</span></a></span><span class="comment-delete delete-tag" title="delete this comment"></span></div></td>
     </tr>
     <tr class="comment deleted" id="comment-{{article_id|safe}}-{{comment_id|safe}}"  article="{{article_id|safe}}" comment-id="{{comment_id|safe}}">
     </tr>

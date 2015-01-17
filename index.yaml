@@ -25,6 +25,13 @@ indexes:
 
 - kind: Articles
   properties:
+  - name: provider
+  - name: author
+  - name: date
+    direction: desc
+
+- kind: Articles
+  properties:
   - name: view
   - name: date
     direction: desc

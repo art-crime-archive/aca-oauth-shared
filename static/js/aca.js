@@ -8,6 +8,12 @@ $(document).ready(function () {
         currentScroll = $(document).scrollTop();
         totalHeight = document.body.offsetHeight;
         visibleHeight = document.documentElement.clientHeight;
+        if (currentScroll > 110) {
+            $('.navbar').addClass('navbar-fixed-top');
+            }
+        if (currentScroll <= 110) {
+            $('.navbar').removeClass('navbar-fixed-top');
+            }
         if (visibleHeight + currentScroll + 10 >= totalHeight) {
               // get more content when user scrolls to bottom
               console.log('end?=', $('#bookmark-end').length);
@@ -55,13 +61,15 @@ $(document).ready(function () {
     console.log('signed in? ', $('#not-signed-in').length)
     if (!form.find('input').length) {
       if ($('#not-signed-in').length) {
-        window.location = $('#not-signed-in').attr('href') + '%23' + $(this).attr('id');
+        window.location = $('#not-signed-in').attr('href')// + '%23' + $(this).attr('id');
+        console.log('log-in URL=', window.location);
       }
       else {
         $(form).append('<div><input class="publish" id="publish-it" type="submit" value="Publish Comment" /></div>');
       }
     }
   });
+
   $('body').on('blur', '.comment-text', function(e) {
     var form = $(this).parent()
     if ($(this).val().trim() == '') {
@@ -69,6 +77,7 @@ $(document).ready(function () {
       $(form.find('div')).remove();
     }
   });
+
   var updateNav = function(urlPath) {
   $('a[href="' + urlPath + '"]').parent().addClass('active').siblings('.active').removeClass('active');
   };
@@ -77,9 +86,9 @@ $(document).ready(function () {
   var History = window.History;
   if (History.enabled) {
       State = History.getState();
+      console.log('initializing history: ', window.location.pathname);
       // set initial state to first page that was loaded
-      console.log(window.location.pathname);
-      History.pushState({urlPath: window.location.pathname}, $("title").text(), State.urlPath);
+//      History.pushState({urlPath: window.location.pathname}, $("title").text(), State.urlPath);
       updateNav(window.location.pathname);
   } else {
       return false;
@@ -97,6 +106,8 @@ var loadAjaxContent = function(target, urlBase, selector) {
             $(selector.slice(0, -5)).removeClass('hidden');
             $($(selector).contents()).appendTo(selector.slice(0, -5));
             $(selector).remove();
+        } else {
+            window.scrollTo(0, 0);
         }
         ajaxContentReady();
         console.log('lAC', target,' ', urlBase, 'sel=', selector);
@@ -161,7 +172,7 @@ var updateContent = function(State) {
         console.log($(this));
         $(this.form).data('clicked', this.value);
   });
-  $('body').on('click', '.comment', function(){
+  $('body').on('click', '.comment', 'a:not(.no-ajax)', function(){
       // create and show comment-edit form if comment is by signed in user
       var user = $('.signed-in').attr('nickname').split('@')[0];
       var comment_author = $(this).attr('author');
