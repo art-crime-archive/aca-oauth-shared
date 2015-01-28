@@ -33,7 +33,7 @@ from google.appengine.runtime import DeadlineExceededError
 import update_schema
 
 authomatic = Authomatic(config=CONFIG, secret='some random secret string')
-
+#Authomatic Integration - Alex Anderson
 def isGmail(string):
 	if string:
 		if "@gmail.com" in string:
@@ -199,6 +199,7 @@ class oAuthUsers:
 	def create_logout_url(self,urlpath=None):
 		return '/logout'
 
+#adjusted from authomatic website example
 class Login(webapp2.RequestHandler):
 
 	# The handler must accept GET and POST http methods and
@@ -365,7 +366,7 @@ def format_article(article, all_articles):
 		#todo - move to article template file
 		all_articles += '<div class="embed">%s</div>' % article.embed
 		all_articles += '<div class="title"> <a class="article-link no-ajax" href="/article?id=%s">%s</a> ' % (article.key().id(), article.title)
-		all_articles += '<span class="author"> by <a class="author-link no-ajax" href="/by-author?author=%s">%s</a> </span>' % (article.author.split('@',2)[0], article.author.split('@',2)[0])
+		all_articles += '<span class="author"> by <a class="author-link no-ajax" href="/by-author?author=%s&provider=%s">%s</a> </span>' % (article.author.split('@',2)[0],article.provider, article.author.split('@',2)[0])
 		all_articles += '<span> %s %s </span></div>' % (view_status, edit_link)
 		all_articles += '<div class="below-video article"><pre>%s</pre></div>' % article.content
 		all_articles += '<div class="below-video tags">Tags: %s</div>' % article.tags
@@ -484,8 +485,16 @@ class MainPage(webapp2.RequestHandler):
 		content = format_article(Articles().get_by_id(int(self.request.get('id')), parent=archive_key()), '')
 
 	elif self.request.path == '/by-author':
-		content = '<div class="below-video"><span class="author"> All articles by <a class="author-link no-ajax" href="/by-author?author=%s">%s</a> </span></div>' % (self.request.get('author'), self.request.get('author'))
-		content += get_articles(author = self.request.get('author'))
+		author = self.request.get('author')
+		authorprovider = self.request.get('provider')
+		content = '<div class="below-video"><span class="author"> Articles with Author Name: <a class="author-link no-ajax" href="/by-author?author=%s">%s</a> </span>' % (author, author)
+		for provider in CONFIG:
+			if authorprovider == author:
+				content += '<span class="author">This Author: <a class="author-link no-ajax" href="/by-author?author=%s&provider=%s">%s</a></span>' % (author,provider,author)
+			else:
+				content += '<span class="author"><a class="author-link no-ajax" href="/by-author?author=%s&provider=%s">%s</a></span>' % (author,provider,author)
+		content += '</div>'
+		content += get_articles(author = self.request.get('author'),provider = self.request.get('provider'))
 	elif self.request.path == '/auth':
 		content = ''
 		for provider in CONFIG:
