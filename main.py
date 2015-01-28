@@ -69,20 +69,60 @@ class oAuthUser:
 		return self.provider
 	def isUser(self,user_name,user_provider):
 		return ((self.name == user_name) and (self.provider == user_provider))
-	def isAuthor(self,article,update=None):
+	def isAuthor(self,article=None,comment=None,comments=None,update=None):
 		#filter out bad source
-		if article.provider != self.provider:
-			return False
-		#exact match scenario
-		elif article.author == self.name:
-			return True
-		#old match scenario
-		elif article.author == self.emailaddress or article.author == self.emailaddress.split('@')[0]: #isGmail(article.author) and
-			#should we update the article author?
-			if update and self.name:
-				article.author = self.name
+		if article and not comments:
+			if article.provider != self.provider:
+				return False
+			#exact match scenario
+			elif article.author == self.name:
+				return True
+			#old match scenario
+			elif self.emailaddress:
+				if article.author == self.emailaddress or article.author == self.emailaddress.split('@')[0]: #isGmail(article.author) and
+					#should we update the article author?
+					if update and self.name:
+						article.author = self.name
+						article.put()
+					return True
+		elif comments:
+			commentid = 0
+			isAuthor = False
+			for comment in comments:
+				commentObj = loads(str(comment))
+				commentAuthor = str(commentObj[1]).split('@',2)[0]
+				#comment's Text = commentObj[0]
+				#comment's Time = commentObj[2]
+				if commentAuthor == self.name:
+					isAuthor = True
+					if not (update and article):
+						return isAuthor
+				elif self.emailaddress:
+					if commentAuthor == self.emailaddress or commentAuthor == self.emailaddress.split('@')[0]:
+						isAuthor = True
+						if update and article:
+							pickled = db.Text(dumps([commentObj[0], self.name, commentObj[2]]))
+							article.comments[commentid] = pickled
+						else:
+							return isAuthor
+				commentid += 1
+			if update and article:
 				article.put()
-			return True
+		elif comment:
+			commentObj = loads(str(comment))
+			commentAuthor = str(commentObj[1]).split('@',2)[0]
+			#comment's Text = commentObj[0]
+			#comment's Time = commentObj[2]
+			if commentAuthor == self.name:
+				return True
+			elif self.emailaddress:
+				if commentAuthor == self.emailaddress or commentAuthor == self.emailaddress.split('@')[0]:
+					if update and article and commentid >= 0:
+						pickled = db.Text(dumps([commentObj[0], self.name, commentObj[2]]))
+						article.comments[commentid] = pickled
+						article.put()
+					return True
+		return False
 
 	def isAdmin(self):
 		qry = AdminUser.query(AdminUser.name == self.name, AdminUser.provider == self.provider)
@@ -216,7 +256,6 @@ class Articles(db.Model):
 	provider = db.StringProperty(default='gg') #Source (Facebook, Twitter...etc)
 
 #This provides the means of changing the database when required
-#Todo limit to only authenticated admin users*	
 class UpdateHandler(webapp2.RequestHandler):
     def get(self):
 		content_id =  self.request.path[1:]
@@ -272,12 +311,22 @@ def format_comments(comments=None, article_id=None):
 	all_comments += tostring(tree.xpath('//tfoot')[0])#needs better element addressing
 	all_comments += '<tbody id="comment-table-' + str(article_id) + '">'
 	comment_id = 0
+	user = oAuthUsers.get_current_user()
 	for comment in comments:
 		nickname = str(loads(str(comment))[1]).split('@',2)[0]
+		dispNickname = nickname
+		if user:
+			#The display nickname will break the code to comment, leave as is
+			#if the author actually matches up
+			if user.isAuthor(comment=comment):
+				dispNickname = nickname
+			#Make it obvious who is the owner
+			elif dispNickname != '':
+				dispNickname = '['+nickname+']'
 		template_data.update({
 			'comment_id': str(comment_id),
 			'comment_display': loads(str(comment))[0],
-			'nickname': nickname,
+			'nickname': dispNickname,
 			'comment_date': loads(str(comment))[2],
 			'time_now': datetime.now(),
 			'user_url': 'by-author?author='+urllib.quote(nickname),
@@ -307,6 +356,11 @@ def format_article(article, all_articles):
 				edit_link = '<a class="links" href="/edit-article-form?id=%s">edit</a>' % article.key().id()
 				if article.view != 'Publish':
 					view_status = '<a class="view-status" href="/edit-article-form?id=%s">not published</a>' % (article.key().id())
+			#Update comments
+			#comment_id = 0
+			#for comment in article.comments:
+			user.isAuthor(article=article,comments=article.comments,update=True)
+			#	comment_id +=1
 					
 		#todo - move to article template file
 		all_articles += '<div class="embed">%s</div>' % article.embed
@@ -424,7 +478,7 @@ class MainPage(webapp2.RequestHandler):
 		content_id += '-next'
 	 
 	elif self.request.path == '/':
-		return self.redirect('/featured')
+		return self.redirect('/the-archive')
 	  
 	elif self.request.path == '/article':
 		content = format_article(Articles().get_by_id(int(self.request.get('id')), parent=archive_key()), '')

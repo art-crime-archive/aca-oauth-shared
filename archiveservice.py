@@ -104,7 +104,7 @@ class ArchiveService(remote.Service):
     def post_comment(self, request):
       article = main.Articles(parent=main.archive_key()).get_by_id(request.article_id, parent=main.archive_key())
       #nickname = main.users.get_current_user() #old-style
-      nickname = main.oAuthUsers.get_current_user()
+      nickname = main.oAuthUsers.get_current_user().nickname()
       pickled = main.db.Text(dumps([request.comment_text, nickname, datetime.now()]))
       article.comments.append(pickled)
       article.put()
@@ -118,7 +118,7 @@ class ArchiveService(remote.Service):
     def edit_comment(self, request):
       article = main.Articles(parent=main.archive_key()).get_by_id(request.article_id, parent=main.archive_key())
       #nickname = main.users.get_current_user() #old-style
-      nickname = main.oAuthUsers.get_oAuth_user()
+      nickname = main.oAuthUsers.get_current_user().nickname()
       pickled = main.db.Text(dumps([request.comment_text, nickname, datetime.now()]))
       article.comments[request.comment_id] = pickled
       article.put()
