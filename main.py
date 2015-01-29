@@ -489,10 +489,10 @@ class MainPage(webapp2.RequestHandler):
 		authorprovider = self.request.get('provider')
 		content = '<div class="below-video"><span class="author"> Articles with Author Name: <a class="author-link no-ajax" href="/by-author?author=%s">%s</a> </span>' % (author, author)
 		for provider in CONFIG:
-			if authorprovider == author:
-				content += '<span class="author">This Author: <a class="author-link no-ajax" href="/by-author?author=%s&provider=%s">%s</a></span>' % (author,provider,author)
+			if authorprovider == provider:
+				content += '<span class="author">This Author: <a class="author-link no-ajax" href="/by-author?author=%s&provider=%s">%s</a></span><br>' % (author,provider,provider)
 			else:
-				content += '<span class="author"><a class="author-link no-ajax" href="/by-author?author=%s&provider=%s">%s</a></span>' % (author,provider,author)
+				content += '<span class="author"><a class="author-link no-ajax" href="/by-author?author=%s&provider=%s">%s</a></span><br>' % (author,provider,provider)
 		content += '</div>'
 		content += get_articles(author = self.request.get('author'),provider = self.request.get('provider'))
 	elif self.request.path == '/auth':
