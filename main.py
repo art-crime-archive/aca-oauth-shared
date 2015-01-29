@@ -22,6 +22,8 @@ from re import sub
 from lxml import etree, html
 from lxml.html import tostring, fragment_fromstring
 from pickle import dumps, loads
+#security
+import hashlib
 
 from authomatic import Authomatic
 from authomatic.adapters import Webapp2Adapter
@@ -52,6 +54,9 @@ class oAuthUser:
 		self.emailaddress = user_email
 		self.provider = user_provider
 		self.credentials = user_credentials
+		self.oauthid = None
+		if user_email:
+			self.oauthid = hashlib.sha256(CONFIG['salt']['consumer_secret'] + user_email).hexdigest()
 	def __str__(self):
 		return self.nickname();
 	def nickname(self):
@@ -59,6 +64,8 @@ class oAuthUser:
 			return self.name
 		elif self.emailaddress:
 			return self.emailaddress.split('@')[0]
+	def oAuthNickname(self):
+		return self.nickname()+'@'+self.oauthid
 	def email(self):
 		return self.email
 	def user_id(self):
@@ -72,56 +79,89 @@ class oAuthUser:
 	def isAuthor(self,article=None,comment=None,comments=None,update=None):
 		#filter out bad source
 		if article and not comments:
-			if article.provider != self.provider:
-				return False
-			#exact match scenario
-			elif article.author == self.name:
+			#if article.provider != self.provider:
+			#	return False
+			#exact match scenario (no need to update)
+			if article.author == self.oAuthNickname():
 				return True
-			#old match scenario
+			#merge account match (no need to update)
+			elif self.oauthid:
+				if article.author.split('@')[1] == self.oauthid:
+					return True
+			#Alex's first method (need to update)
+			if article.author == self.nickname() && article.provider == self.provider:
+				if update and self.name:
+					article.author = self.oAuthNickname()
+					article.put()
+				return True
+			#Old GAE Account (need to update)
 			elif self.emailaddress:
 				if article.author == self.emailaddress or article.author == self.emailaddress.split('@')[0]: #isGmail(article.author) and
 					#should we update the article author?
 					if update and self.name:
-						article.author = self.name
+						article.author = self.oAuthNickname()
 						article.put()
 					return True
-		elif comments:
+		elif comments: #save network time by doing algorithm in bulk
 			commentid = 0
 			isAuthor = False
 			for comment in comments:
 				commentObj = loads(str(comment))
-				commentAuthor = str(commentObj[1]).split('@',2)[0]
+				commentAuthor = str(commentObj[1])#.split('@',2)[0]
 				#comment's Text = commentObj[0]
 				#comment's Time = commentObj[2]
-				if commentAuthor == self.name:
+				shouldUpdate = update and article
+				if commentAuthor == self.oAuthNickname():
 					isAuthor = True
-					if not (update and article):
+					if not (update and article): #Author of one of the comments
 						return isAuthor
-				elif self.emailaddress:
-					if commentAuthor == self.emailaddress or commentAuthor == self.emailaddress.split('@')[0]:
+				elif self.emailaddress: #Old GAE Login comment
+					if commentAuthor == self.emailaddress: #or commentAuthor == self.nickname():#self.emailaddress.split('@')[0]:
 						isAuthor = True
-						if update and article:
-							pickled = db.Text(dumps([commentObj[0], self.name, commentObj[2]]))
+						if shouldUpdate:
+							pickled = db.Text(dumps([commentObj[0], self.oAuthNickname(), commentObj[2]]))
 							article.comments[commentid] = pickled
 						else:
 							return isAuthor
+				elif commentAuthor.split('@',2)[0] == self.nickname(): #Alex's first method
+					isAuthor = True
+					if shouldUpdate:
+						pickled = db.Text(dumps([commentObj[0], self.oAuthNickname(), commentObj[2]]))
+						article.comments[commentid] = pickled
+					else:
+						return isAuthor:
 				commentid += 1
-			if update and article:
+			if shouldUpdate:
 				article.put()
+			return isAuthor
 		elif comment:
 			commentObj = loads(str(comment))
-			commentAuthor = str(commentObj[1]).split('@',2)[0]
+			commentAuthor = str(commentObj[1])#.split('@',2)[0]
 			#comment's Text = commentObj[0]
 			#comment's Time = commentObj[2]
-			if commentAuthor == self.name:
+			#Exact Match
+			isAuthor = False
+			shouldUpdate = update and article
+			if commentAuthor == self.oAuthNickname():
 				return True
-			elif self.emailaddress:
-				if commentAuthor == self.emailaddress or commentAuthor == self.emailaddress.split('@')[0]:
-					if update and article and commentid >= 0:
-						pickled = db.Text(dumps([commentObj[0], self.name, commentObj[2]]))
+			elif self.emailaddress: #Old GAE Login comment
+				if commentAuthor == self.emailaddress: #or commentAuthor == self.nickname():#self.emailaddress.split('@')[0]:
+					isAuthor = True
+					if shouldUpdate:
+						pickled = db.Text(dumps([commentObj[0], self.oAuthNickname(), commentObj[2]]))
 						article.comments[commentid] = pickled
-						article.put()
-					return True
+					else:
+						return isAuthor
+			elif commentAuthor.split('@',2)[0] == self.nickname(): #Alex's first method
+				isAuthor = True
+				if shouldUpdate:
+					pickled = db.Text(dumps([commentObj[0], self.oAuthNickname(), commentObj[2]]))
+					article.comments[commentid] = pickled
+				else:
+					return isAuthor:
+			if shouldUpdate:
+				article.put()
+			return isAuthor
 		return False
 
 	def isAdmin(self):
