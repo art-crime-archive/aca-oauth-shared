@@ -23,6 +23,7 @@ from lxml import etree, html
 from lxml.html import tostring, fragment_fromstring
 from pickle import dumps, loads
 #security
+import gae_secrets
 import hashlib
 
 from authomatic import Authomatic
@@ -705,40 +706,5 @@ app = webapp2.WSGIApplication([('/', MainPage),
 							   webapp2.Route(r'/logout', MainPage)],
                                 debug=True)
 
-#Create an admin user for every form of login*
-class AdminUser(ndb.Model):
-	provider = ndb.StringProperty()
-	name = ndb.StringProperty()
-
-def newAdminUser(provider):
-	return AdminUser(parent=akey, provider=provider, name='admin')
-
-akey = ndb.Key('AdminUser', 'admin_users')
-admin_query = AdminUser.query(ancestor=akey)
-admins = admin_query.fetch()
-storedAdmins = {a.provider: {'name':a.name} for a in admins}
-
-ndb.put_multi(newAdminUser(p) for p in CONFIG if p not in storedAdmins)
+#Create an admin user for every form of log
 								
-class Secret(ndb.Model):
-    """Models an individual Secret entry."""
-    provider = ndb.StringProperty()
-    consumer_key = ndb.StringProperty()
-    consumer_secret = ndb.StringProperty()
-
-def newSecret(provider):
-    return Secret(parent=key, provider=provider, consumer_key='k', consumer_secret='s')
-
-key = ndb.Key('Secrets', 'client_secrets')
-secrets_query = Secret.query(ancestor=key)
-secrets = secrets_query.fetch()
-storedProviders = {s.provider: {'consumer_key':s.consumer_key, 'consumer_secret':s.consumer_secret} for s in secrets}
-
-ndb.put_multi(newSecret(p) for p in CONFIG if p not in storedProviders)
-#update CONFIG with stored secrets
-for provider in CONFIG:
-    try:
-        CONFIG[provider]['consumer_key'] = storedProviders[provider]['consumer_key']
-        CONFIG[provider]['consumer_secret'] = storedProviders[provider]['consumer_secret']
-    except KeyError:
-        logging.info("The secrets for new provider %s may not have been updated", provider)
