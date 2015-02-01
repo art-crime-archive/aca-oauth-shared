@@ -150,7 +150,10 @@ class oAuthUser:
 		elif comment: #do one comment
 			commentObj = loads(str(comment))
 			commentAuthor = str(commentObj[1])#.split('@',2)[0]
-			commentTail = str(commentObj[1]).split('@',2)[1]
+			try:
+				commentTail = str(commentObj[1]).split('@',2)[1]
+			except:
+				commentTail = None
 			#Merge match
 			if commentAuthor and commentTail == self.oauthid:
 				isAuthor = True
@@ -188,6 +191,7 @@ class oAuthUser:
 		cookie['user_email'] = self.emailaddress
 		cookie['user_provider'] = self.provider
 		cookie['credentials'] = self.credentials
+		return cookie.output();
 	@classmethod
 	def fromCookie(self):
 		cookie_string = os.environ.get('HTTP_COOKIE')
@@ -256,10 +260,12 @@ class Login(webapp2.RequestHandler):
 	def any(self, provider_name):
 		#make sure we're not already logged in! don't waste api calls!
 		user = oAuthUser.fromCookie()
+		redirect = getRedirect()
+		self.response.delete_cookie('user_redirect')
 		if user:
 			if user.name and user.provider:
 				self.response.delete_cookie('error')
-				self.redirect('/')
+				self.redirect(redirect)
 		
 		# It all begins with login.
 		result = authomatic.login(Webapp2Adapter(self), provider_name)
@@ -288,7 +294,7 @@ class Login(webapp2.RequestHandler):
 					# Serialize credentials and store it as well.
 					serialized_credentials = result.user.credentials.serialize()
 					self.response.set_cookie('credentials', serialized_credentials)
-				self.redirect('/')
+				self.redirect(redirect)
 			elif result.error:
 				self.response.set_cookie('error', urllib.quote(result.error.message))
 				self.response.out.write(str(result.error.message))
@@ -345,6 +351,30 @@ def innerHTML(file, tag):
 	tree = html.parse(file)
 	return ''.join([tostring(child) for child in tree.xpath(tag)[0].iterchildren()])
 
+def getTheme():
+	theme = None
+  	cookie_string = os.environ.get('HTTP_COOKIE')
+	if cookie_string:
+		cookie = Cookie.SimpleCookie()
+		cookie.load(cookie_string)
+		try:
+			theme = cookie['user_theme'].value
+		except:
+			theme = None
+	return theme
+
+def getRedirect():
+	redirect = '/'
+  	cookie_string = os.environ.get('HTTP_COOKIE')
+	if cookie_string:
+		cookie = Cookie.SimpleCookie()
+		cookie.load(cookie_string)
+		try:
+			redirect = cookie['user_redirect'].value
+		except:
+			redirect = '/'
+	return redirect
+	
 def TemplateObject(object, values, theme = None, select = 0):
 	path = ThemeTemplate(theme)
 	tree = SafeTree(template.render(path, values))
@@ -374,9 +404,6 @@ def format_comments(comments=None, article_id=None, theme = None):
 	template_data = {
 		  'user_activity': '',
 		  'article_id': article_id,}
-	comment_box = ('<form class="comment-form" name="comment-form" action="/comment-on?id=%s" method="post">'
-				  '<textarea class="comment-text" name="comment-text" title="add your comment..."></textarea>'
-				  '</form>' % article_id)
 #todo - build comment tree by replacing and adding.
 #todo - add report abuse.
 	#path = os.path.join(os.path.dirname(__file__), 'comment-table-template.html' )
@@ -527,17 +554,7 @@ class GetPage(webapp2.RequestHandler):
 
 class MainPage(webapp2.RequestHandler):
   def get(self):
-  	cookie_string = os.environ.get('HTTP_COOKIE')
-	if cookie_string:
-		cookie = Cookie.SimpleCookie()
-		cookie.load(cookie_string)
-		try:
-			theme = cookie['user_theme'].value
-		except:
-			theme = None
-	else:
-		theme = None
-		
+	theme = getTheme()
 	select = 0
 	style = ''
 	#user = users.get_current_user()
@@ -549,10 +566,13 @@ class MainPage(webapp2.RequestHandler):
 		greeting = ('<a id="not-signed-in" class="sign-in" href="%s">Sign in or register</a>' % (oAuthUsers.create_login_url("/")))
 		nickname = ''
 
-	content = 'No content for this URL'
+	content = ''
 	content_id =  self.request.path[1:]
 
 	#faster execution using elif blocks
+	if not (self.request.path == '/auth' or self.request.path == 'logout'):
+		self.response.set_cookie('user_redirect', self.request.path)
+		
 	if self.request.get('bookmark'):
 		content_id += '-next'
 	 
@@ -586,11 +606,11 @@ class MainPage(webapp2.RequestHandler):
 		self.response.delete_cookie('credentials')
 		self.response.delete_cookie('user_provider')
 		self.response.delete_cookie('error')
-		
+		redirect = getRedirect()
 		#content = ''
 		#for provider in CONFIG:
 		#	content += '<a href="/login/%s">%s</a><br>' % (provider,provider)
-		self.redirect('/auth');
+		self.redirect(redirect);
 	
 	elif self.request.path[:12] == '/curated':
 		for id in open('archive-list.txt', 'r').read().split():
@@ -640,6 +660,8 @@ class MainPage(webapp2.RequestHandler):
 		tree = html.parse('About-the-Art-Crime-Archive.html')
 		style = tostring(tree.xpath('//style')[0])
 		content = innerHTML('About-the-Art-Crime-Archive.html', 'body')
+	else: #no url match? Well then
+		content = 'Whoops! No Content For This Url!'
 
 	javascripts = """
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.js"></script>
@@ -669,36 +691,87 @@ class MainPage(webapp2.RequestHandler):
 	#	path = ThemeTemplate(None,'index.html')
 	#	self.response.out.write(template.render(path, template_data))
 
-class CreateArticleForm(webapp2.RequestHandler):
+class ArticleForm(webapp2.RequestHandler):
   def get(self):
 	user = oAuthUser.fromCookie() #users.get_current_user()
 	if user:
-		greeting = "<span class=\"signed-in\"> %s</span>" % user.nickname()
+		greeting = ('<div class="signed-in" nickname="%s"> %s <a class="sign-out no-ajax" href="%s">(sign out)</a></div>' % (user.nickname(), user.nickname(), oAuthUsers.create_logout_url("/")))
+		nickname = user.nickname()
 		template_values = {
 			'greeting': greeting,
 			'user': user.nickname(),
 		}
+		theme = getTheme()
+		select = 0
+		style = ''
 	else:
 		if 'X-Requested-With' in self.request.headers:
 			return self.error(500)
 		else:
+			self.response.set_cookie('user_redirect', self.request.path)
 			return self.redirect(oAuthUsers.create_login_url("/create-article"))
-	  
-	self.response.out.write("""
-		  <div id="%s" class="center-stage">
-		  <form action="/publish-it" method="post">
-			<div>Embed-code<br /><textarea name="embed-code" rows="6" cols="auto"  class="boxsizingBorder"></textarea></div>
-			<div><input type="hidden"></div>
-			<div>Title<br /><textarea name="title" rows="1" cols="80"></textarea></div>
-			<div><input type="hidden"></div>
-			<div>Article body<br /><textarea name="content" rows="12" cols="80"></textarea></div>
-			<div>Tags<br /><textarea name="tags" rows="1" cols="80"></textarea></div>
-			<div><input type="submit" name="view" value="Preview"></div>
-		  </form>
-		  </div>
-		  """ % self.request.path[1:])
-
-
+	
+	content_id =  self.request.path[1:]
+	content = ''
+	if self.request.path == '/create-article':
+		content = """
+			  <div id="%s" class="center-stage">
+			  <form action="/publish-it" method="post">
+				<div>Embed-code<br /><textarea name="embed-code" rows="6" cols="auto"  class="boxsizingBorder"></textarea></div>
+				<div><input type="hidden"></div>
+				<div>Title<br /><textarea name="title" rows="1" cols="80"></textarea></div>
+				<div><input type="hidden"></div>
+				<div>Article body<br /><textarea name="content" rows="12" cols="80"></textarea></div>
+				<div>Tags<br /><textarea name="tags" rows="1" cols="80"></textarea></div>
+				<div><input type="submit" name="view" value="Preview"></div>
+			  </form>
+			  </div>
+			  """ % content_id
+	elif self.request.path == '/edit-article-form':
+		article_id = int(self.request.get('id'))
+		article = Articles(parent=archive_key()).get_by_id(article_id, parent=archive_key())
+		if user.isAuthor(article=article,update=True) or user.isAdmin():
+			content = """
+				<div id="%s-id-%s" class="center-stage">
+				  <form action="/publish-it?id=%s" method="post">
+					<div>Embed<br /><textarea name="embed-code" rows="6" cols="80">%s</textarea></div>
+					<div><input type="hidden"></div>
+					<div>Title<br /><textarea name="title" rows="1" cols="80">%s</textarea></div>
+					<div><input type="hidden"></div>
+					<div>Article body<br /><textarea name="content" rows="12" cols="80">%s</textarea></div>
+					<div>Tags<br /><textarea name="tags" rows="1" cols="80">%s</textarea></div>
+					<div><input type="submit" name="view" value="Preview">
+					<input type="submit" name="view" value="Retract">
+					<input type="submit" name="view" value="Publish"></div>
+				  </form>
+				</div>	
+				  """ % (content_id, article_id, article_id, article.embed, article.title, 
+						 sub('<[^>]*>', '', article.content), article.tags)
+	
+	javascripts = """
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.js"></script>
+    <script src="../static/js/jquery.fitvids.js"></script>
+	<script src='../static/js/jquery.autosize.js'></script>
+    <script src="../static/js/jquery.hint.js"></script>
+	<script src='../static/js/jquery.history.js'></script>
+    <script src="../static/js/bootstrap.min.js"></script>
+    <script src="../static/js/aca.js"></script>
+	%s
+	""" % ('')
+	
+	template_data = {
+			'content_id': content_id,
+			'content': content,
+			'nickname': nickname,
+			'greeting': greeting,
+			'style': style,
+			'javascripts': javascripts
+			}
+	
+	path = ThemeTemplate(theme,'index.html') #os.path.join(os.path.dirname(__file__), 'index.html' )
+	self.response.headers['X-XSS-Protection'] = '0' #prevents blank embed after post
+	self.response.out.write(template.render(path, template_data))
+		  
 class PublishArticle(webapp2.RequestHandler):
   def post(self):
 	if self.request.get('id') is not '':
@@ -723,14 +796,28 @@ class PublishArticle(webapp2.RequestHandler):
 
 class EditArticleForm(webapp2.RequestHandler):
   def get(self):
+	user = oAuthUser.fromCookie() #users.get_current_user()
+	if user:
+		nickname = user.nickname()
+		greeting = "<span class=\"signed-in\"> %s</span>" % user.nickname()
+		template_values = {
+			'greeting': greeting,
+			'user': user.nickname(),
+		}
+		theme = getTheme()
+		select = 0
+		style = ''
+	else:
+		if 'X-Requested-With' in self.request.headers:
+			return self.error(500)
+		else:
+			return self.redirect(oAuthUsers.create_login_url("/create-article"))
+	content_id =  self.request.path[1:]
+	
 	article_id = int(self.request.get('id'))
 	article = Articles(parent=archive_key()).get_by_id(article_id, parent=archive_key())
-	
-	user = oAuthUsers.get_current_user()
-	if not user:
-	  return self.redirect(oAuthUsers.create_login_url("/"))
 
-	self.response.out.write("""
+	content = """
 		<div id="%s-id-%s" class="center-stage">
 		  <form action="/publish-it?id=%s" method="post">
 			<div>Embed<br /><textarea name="embed-code" rows="6" cols="80">%s</textarea></div>
@@ -744,8 +831,28 @@ class EditArticleForm(webapp2.RequestHandler):
 			<input type="submit" name="view" value="Publish"></div>
 		  </form>
 		</div>	
-		  """ % (self.request.path[1:], article_id, article_id, article.embed, article.title, 
-				 sub('<[^>]*>', '', article.content), article.tags))
+		  """ % (content_id, article_id, article_id, article.embed, article.title, 
+				 sub('<[^>]*>', '', article.content), article.tags)
+	
+	javascripts = """
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.js"></script>
+    <script src="../static/js/jquery.fitvids.js"></script>
+	<script src='../static/js/jquery.autosize.js'></script>
+    <script src="../static/js/jquery.hint.js"></script>
+	<script src='../static/js/jquery.history.js'></script>
+    <script src="../static/js/bootstrap.min.js"></script>
+    <script src="../static/js/aca.js"></script>
+	%s
+	""" % ('')
+	
+	template_data = {
+			'content_id': content_id,
+			'content': content,
+			'nickname': nickname,
+			'greeting': greeting,
+			'style': style,
+			'javascripts': javascripts
+			}
 
 app = webapp2.WSGIApplication([('/', MainPage),
 							   ('/article', MainPage), 
@@ -760,15 +867,13 @@ app = webapp2.WSGIApplication([('/', MainPage),
 							   ('/my-articles', MainPage), 
 							   ('/my-articles-next', MainPage), 
 							   ('/about', MainPage), 
-							   ('/create-article', CreateArticleForm),
-							   ('/edit-article-form', EditArticleForm),
+							   ('/create-article', ArticleForm),
+							   ('/edit-article-form', ArticleForm),
 							   ('/test', MainPage),
 							   ('/auth', MainPage),
 							   ('/publish-it', PublishArticle),
-                               ('/update-schema',UpdateHandler),
+                               ('/update/schema',UpdateHandler),
 							   webapp2.Route(r'/login/<:.*>', Login, handler_method='any'),
 							   webapp2.Route(r'/logout', MainPage)],
                                 debug=True)
-
-#Create an admin user for every form of log
-								
+						
