@@ -121,7 +121,10 @@ class oAuthUser:
 			for comment in comments:
 				commentObj = loads(str(comment))
 				commentAuthor = str(commentObj[1])
-				commentTail = str(commentObj[1]).split('@',2)[1]
+				try:
+					commentTail = str(commentObj[1]).split('@',2)[1]
+				except:
+					commentTail = None
 				#comment's Text = commentObj[0]
 				#comment's Time = commentObj[2]
 				shouldUpdate = update and article
