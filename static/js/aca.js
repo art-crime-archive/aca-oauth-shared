@@ -1,6 +1,4 @@
-﻿
-
-$(document).ready(function () {
+﻿$(document).ready(function () {
     // automatically get and show more content when user scrolls to end of page
     $(window).scroll(function() {
         console.log('scrolling');

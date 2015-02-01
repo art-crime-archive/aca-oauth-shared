@@ -35,4 +35,3 @@ libraries:
 builtins:
 - remote_api: on
 - deferred: on
-- datastore_admin: on

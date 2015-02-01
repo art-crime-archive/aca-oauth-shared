@@ -1,5 +1,5 @@
 <table>
-  <tfoot>
+  <tfoot data-template-object="comment-add">
       <tr class="comment-add-{{article_id|safe}}">
         <td></td>
         <td>
@@ -11,16 +11,30 @@
         </td>
       </tr>
   </tfoot>
-  <tbody id="comment-table-{{article_id|safe}}">
-    <tr  class="comment" id="comment-{{article_id|safe}}-{{comment_id|safe}}" article="{{article_id|safe}}" comment-id="{{comment_id|safe}}" author="{{nickname|safe}}" style="">
+  <tbody data-template-object="comment-list" id="comment-table-{{article_id|safe}}">
+    <tr data-template-object="comment" class="comment" id="comment-{{article_id|safe}}-{{comment_id|safe}}" article="{{article_id|safe}}" comment-id="{{comment_id|safe}}" author="{{nickname|safe}}" style="">
       <td class="comment-info"></td>
       <td class="comment-display"><div><a href="{{user_url|safe}}" title="{{user_activity|safe}}" class="no-ajax comment-user">{{nickname|safe}} </a><span class="comment-display">{{comment_display}}</span><br /><span class="comment-date" dir="ltr"><span title="{{comment_date|date:"M d Y"}}" class="comment-relativetime">{{comment_date|timesince}} ago</span></a></span><span class="comment-delete delete-tag" title="delete this comment"></span></div></td>
     </tr>
-    <tr class="comment deleted" id="comment-{{article_id|safe}}-{{comment_id|safe}}"  article="{{article_id|safe}}" comment-id="{{comment_id|safe}}">
+    <tr data-template-object="comment-deleted" class="comment deleted" id="comment-{{article_id|safe}}-{{comment_id|safe}}"  article="{{article_id|safe}}" comment-id="{{comment_id|safe}}">
     </tr>
-    <tr class="comment hidden" id="comment-{{article_id|safe}}"  article="{{article_id|safe}}" comment-id="{{comment_id|safe}}" author="{{nickname|safe}}" >
+    <tr data-template-object="comment-hidden" class="comment hidden" id="comment-{{article_id|safe}}"  article="{{article_id|safe}}" comment-id="{{comment_id|safe}}" author="{{nickname|safe}}" >
       <td class="comment-info"></td>
       <td class="comment-display"><div><a href="" title="" class="comment-user"></a> <span class="comment-display"></span><br /><span class="comment-date" dir="ltr"><span title="comment date" class="comment-relativetime">0 minutes ago</span></a></span><span class="comment-delete delete-tag" title="delete this comment"></span></div></td>
     </tr>
   </tbody>
 </table>
+
+<div data-template-object="article">
+	<div class="embed">{{article_embed|safe}}</div>
+	<div class="title"> 
+		<a class="article-link no-ajax" href="{{article_link}}">{{article_title}}</a>
+		<span class="author"> by <a class="author-link no-ajax" href="{{article_author_link}}">{{article_author}}</a> </span>
+		<span>{{view_status|safe}}{{edit_link|safe}}</span>
+	</div>
+	<div class="below-video article">{{article_content|safe}}</div>
+	<div class="below-video tags">Tags: {{article_tags}}</div>
+	<div>{{article_comments|safe}}</div>
+</div>
+
+<div data-template-object="pagination" class="bookmark" data-bookmark="{{next_url}}" ></div>

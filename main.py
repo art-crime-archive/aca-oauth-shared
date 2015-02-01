@@ -55,7 +55,7 @@ class oAuthUser:
 		self.emailaddress = user_email
 		self.provider = user_provider
 		self.credentials = user_credentials
-		self.oauthid = None
+		self.oauthid = user_provider
 		if user_email:
 			self.oauthid = hashlib.sha256(CONFIG['salt']['consumer_secret'] + user_email).hexdigest()
 	def __str__(self):
@@ -66,7 +66,10 @@ class oAuthUser:
 		elif self.emailaddress:
 			return self.emailaddress.split('@')[0]
 	def oAuthNickname(self):
-		return self.nickname()+'@'+self.oauthid
+		try:
+			return self.nickname()+'@'+self.oauthid
+		except TypeError:
+			return self.nickname()+'@'+self.provider
 	def email(self):
 		return self.email
 	def user_id(self):
@@ -78,92 +81,94 @@ class oAuthUser:
 	def isUser(self,user_name,user_provider):
 		return ((self.name == user_name) and (self.provider == user_provider))
 	def isAuthor(self,article=None,comment=None,comments=None,update=None):
-		#filter out bad source
+		isAuthor = False
+		shouldUpdate = update and article
 		if article and not comments:
-			#if article.provider != self.provider:
-			#	return False
-			#exact match scenario (no need to update)
-			if article.author == self.oAuthNickname():
-				return True
-			#merge account match (no need to update)
-			elif self.oauthid:
-				if article.author.split('@')[1] == self.oauthid:
-					return True
-			#Alex's first method (need to update)
-			if article.author == self.nickname() && article.provider == self.provider:
-				if update and self.name:
-					article.author = self.oAuthNickname()
+			#merge account match Dan's Method (no need to update)
+			try:
+				if article.oauthid == self.oauthid:
+					return isAuthor
+			#if article is missing oauthid then we need to update structure*
+			except AttributeError:
+				isAuthor = False
+				shouldUpdate = True
+			#check if providers match and if we need to update structure*
+			try:
+				isSameProvider = article.provider == self.provider
+			except AttributeError:
+				isSameProvider = False
+				shouldUpdate = True
+			#Alex's Method Lines up unique username and login method
+			if article.author == self.nickname() and isSameProvider:
+				if shouldUpdate:
+					article.author = self.nickname()
+					article.oauthid = self.oauthid
+					article.provider = self.provider
 					article.put()
 				return True
-			#Old GAE Account (need to update)
+			#Old GAE Account Method (need to update structur)
 			elif self.emailaddress:
 				if article.author == self.emailaddress or article.author == self.emailaddress.split('@')[0]: #isGmail(article.author) and
 					#should we update the article author?
-					if update and self.name:
-						article.author = self.oAuthNickname()
+					if shouldUpdate:
+						article.author = self.nickname()
+						article.oauthid = self.oauthid
+						article.provider = self.provider
 						article.put()
 					return True
 		elif comments: #save network time by doing algorithm in bulk
 			commentid = 0
-			isAuthor = False
 			for comment in comments:
 				commentObj = loads(str(comment))
-				commentAuthor = str(commentObj[1])#.split('@',2)[0]
+				commentAuthor = str(commentObj[1])
+				commentTail = str(commentObj[1]).split('@',2)[1]
 				#comment's Text = commentObj[0]
 				#comment's Time = commentObj[2]
 				shouldUpdate = update and article
-				if commentAuthor == self.oAuthNickname():
+				#Format: Nickname()@oauthid Dan's Method
+				if commentAuthor and commentTail == self.oauthid:
 					isAuthor = True
-					if not (update and article): #Author of one of the comments
-						return isAuthor
-				elif self.emailaddress: #Old GAE Login comment
-					if commentAuthor == self.emailaddress: #or commentAuthor == self.nickname():#self.emailaddress.split('@')[0]:
+				elif self.emailaddress: #Old GAE Account Method
+					if commentAuthor == self.emailaddress or commentAuthor == self.emailaddress.split('@')[0]:
 						isAuthor = True
 						if shouldUpdate:
 							pickled = db.Text(dumps([commentObj[0], self.oAuthNickname(), commentObj[2]]))
 							article.comments[commentid] = pickled
 						else:
 							return isAuthor
-				elif commentAuthor.split('@',2)[0] == self.nickname(): #Alex's first method
-					isAuthor = True
-					if shouldUpdate:
-						pickled = db.Text(dumps([commentObj[0], self.oAuthNickname(), commentObj[2]]))
-						article.comments[commentid] = pickled
-					else:
-						return isAuthor:
-				commentid += 1
-			if shouldUpdate:
-				article.put()
-			return isAuthor
-		elif comment:
-			commentObj = loads(str(comment))
-			commentAuthor = str(commentObj[1])#.split('@',2)[0]
-			#comment's Text = commentObj[0]
-			#comment's Time = commentObj[2]
-			#Exact Match
-			isAuthor = False
-			shouldUpdate = update and article
-			if commentAuthor == self.oAuthNickname():
-				return True
-			elif self.emailaddress: #Old GAE Login comment
-				if commentAuthor == self.emailaddress: #or commentAuthor == self.nickname():#self.emailaddress.split('@')[0]:
+				elif commentAuthor == self.name: #Alex's Method (BAD! Username Overlap definitely needs Update!)
 					isAuthor = True
 					if shouldUpdate:
 						pickled = db.Text(dumps([commentObj[0], self.oAuthNickname(), commentObj[2]]))
 						article.comments[commentid] = pickled
 					else:
 						return isAuthor
-			elif commentAuthor.split('@',2)[0] == self.nickname(): #Alex's first method
+				commentid += 1
+		elif comment: #do one comment
+			commentObj = loads(str(comment))
+			commentAuthor = str(commentObj[1])#.split('@',2)[0]
+			commentTail = str(commentObj[1]).split('@',2)[1]
+			#Merge match
+			if commentAuthor and commentTail == self.oauthid:
+				isAuthor = True
+			elif self.emailaddress: #old matches
+				if commentAuthor == self.emailaddress or commentAuthor == self.emailaddress.split('@')[0]:
+					isAuthor = True
+					if shouldUpdate:
+						pickled = db.Text(dumps([commentObj[0], self.oAuthNickname(), commentObj[2]]))
+						article.comments[commentid] = pickled
+					else:
+						return isAuthor
+			elif commentAuthor == self.name:
 				isAuthor = True
 				if shouldUpdate:
 					pickled = db.Text(dumps([commentObj[0], self.oAuthNickname(), commentObj[2]]))
 					article.comments[commentid] = pickled
 				else:
-					return isAuthor:
-			if shouldUpdate:
-				article.put()
-			return isAuthor
-		return False
+					return isAuthor
+		if shouldUpdate:
+			article.put()
+		return isAuthor
 
 	def isAdmin(self):
 		qry = AdminUser.query(AdminUser.name == self.name, AdminUser.provider == self.provider)
@@ -337,7 +342,32 @@ def innerHTML(file, tag):
 	tree = html.parse(file)
 	return ''.join([tostring(child) for child in tree.xpath(tag)[0].iterchildren()])
 
-def format_comments(comments=None, article_id=None):
+def TemplateObject(object, values, theme = None, select = 0):
+	path = ThemeTemplate(theme)
+	tree = SafeTree(template.render(path, values))
+	return TreeObject(tree, object, select)
+
+def TreeObject(tree, object, select = 0):
+	treeList = tree.xpath('//*[@data-template-object="'+object+'"]')
+	try:
+		return tostring(treeList[select])
+	except IndexError:
+		return ''
+	
+def ThemeTemplate(theme = None, path = 'template.html'):
+	if theme:
+		template_file = os.path.join(os.path.dirname(__file__),'templates',theme,path)# 'static/templates/'+theme+'/'+path
+	else:
+		template_file = os.path.join(os.path.dirname(__file__),path)
+	return os.path.join(os.path.dirname(__file__), template_file )
+
+def SafeTree(string):
+	try:
+		return fragment_fromstring(string, create_parent=False)
+	except: #Wraps whatever was loaded with a <div> element
+		return fragment_fromstring(string, create_parent=True)
+	
+def format_comments(comments=None, article_id=None, theme = None):
 	template_data = {
 		  'user_activity': '',
 		  'article_id': article_id,}
@@ -346,11 +376,13 @@ def format_comments(comments=None, article_id=None):
 				  '</form>' % article_id)
 #todo - build comment tree by replacing and adding.
 #todo - add report abuse.
-	path = os.path.join(os.path.dirname(__file__), 'comment-table-template.html' )
+	#path = os.path.join(os.path.dirname(__file__), 'comment-table-template.html' )
+	path = ThemeTemplate(theme)
 	all_comments = '<div class="below-video comments">Comments:<table>'
 	template_data.update({'comment_id': len(comments)})
-	tree = fragment_fromstring(template.render(path, template_data), create_parent=False)
-	all_comments += tostring(tree.xpath('//tfoot')[0])#needs better element addressing
+	tree = SafeTree(template.render(path, template_data))
+	all_comments += TreeObject(tree, "comment-add") #tostring(tree.xpath('//tfoot')[0])#needs better element addressing
+	#all_comments += tostring(tree.xpath('//[@data-template-comment='4']')[0])#alex better element addressing
 	all_comments += '<tbody id="comment-table-' + str(article_id) + '">'
 	comment_id = 0
 	user = oAuthUsers.get_current_user()
@@ -373,21 +405,21 @@ def format_comments(comments=None, article_id=None):
 			'time_now': datetime.now(),
 			'user_url': 'by-author?author='+urllib.quote(nickname),
 			})
-		tree = fragment_fromstring(template.render(path, template_data), create_parent=False)
+		tree = SafeTree(template.render(path, template_data))
 		if nickname != '':
-			all_comments += tostring(tree.xpath('//tr')[1])
+			all_comments += TreeObject(tree, "comment")
 		else:
-			all_comments += tostring(tree.xpath('//tr')[2]) #deleted comment tr
+			all_comments += TreeObject(tree, "comment-deleted")
 		comment_id += 1
 	
 	#place an empty hidden comment last
 	template_data.update({'comment_id': len(comments)})
-	tree = fragment_fromstring(template.render(path, template_data), create_parent=False)
-	all_comments += tostring(tree.xpath('//tr')[3]) #hidden comment tr
+	tree = tree = SafeTree(template.render(path, template_data))
+	all_comments += TreeObject(tree, "comment-hidden")
 	all_comments += '</tbody></table></div>'
 	return all_comments
 
-def format_article(article, all_articles):
+def format_article(article, all_articles, theme = None, select = 0):
 	edit_link = ''
 	view_status = ''
 	user = oAuthUser.fromCookie()
@@ -398,24 +430,37 @@ def format_article(article, all_articles):
 				edit_link = '<a class="links" href="/edit-article-form?id=%s">edit</a>' % article.key().id()
 				if article.view != 'Publish':
 					view_status = '<a class="view-status" href="/edit-article-form?id=%s">not published</a>' % (article.key().id())
-			#Update comments
-			#comment_id = 0
-			#for comment in article.comments:
+			#Update comments #comment_id = 0 #for comment in article.comments:
 			user.isAuthor(article=article,comments=article.comments,update=True)
-			#	comment_id +=1
-					
+		article_link = '/article?id=%s' % (article.key().id())
+		article_author_link = '/by-author?author=%s&provider=%s' % (article.author.split('@',2)[0], article.provider)
+		article_author = article.author.split('@',2)[0]
+		article_comments = format_comments(article.comments, article.key().id())
+		template_data = {
+		  'edit_link': edit_link,
+		  'view_status': view_status,
+		  'article_author': article_author,
+		  'article_embed': article.embed,
+		  'article_link': article_link,
+		  'article_content': article.content,
+		  'article_tags': article.tags,
+		  'article_comments': article_comments,
+		  'article_author_link': article_author_link,
+		  'article_title': article.title,
+		  }		
 		#todo - move to article template file
-		all_articles += '<div class="embed">%s</div>' % article.embed
-		all_articles += '<div class="title"> <a class="article-link no-ajax" href="/article?id=%s">%s</a> ' % (article.key().id(), article.title)
-		all_articles += '<span class="author"> by <a class="author-link no-ajax" href="/by-author?author=%s&provider=%s">%s</a> </span>' % (article.author.split('@',2)[0],article.provider, article.author.split('@',2)[0])
-		all_articles += '<span> %s %s </span></div>' % (view_status, edit_link)
-		all_articles += '<div class="below-video article"><pre>%s</pre></div>' % article.content
-		all_articles += '<div class="below-video tags">Tags: %s</div>' % article.tags
-		all_articles += format_comments(article.comments, article.key().id())
+		#all_articles += '<div class="embed">%s</div>' % article.embed
+		#all_articles += '<div class="title"> <a class="article-link no-ajax" href="/article?id=%s">%s</a> ' % (article.key().id(), article.title)
+		#all_articles += '<span class="author"> by <a class="author-link no-ajax" href="/by-author?author=%s&provider=%s">%s</a> </span>' % (article.author.split('@',2)[0],article.provider, article.author.split('@',2)[0])
+		#all_articles += '<span> %s %s </span></div>' % (view_status, edit_link)
+		#all_articles += '<div class="below-video article"><pre>%s</pre></div>' % article.content
+		#all_articles += '<div class="below-video tags">Tags: %s</div>' % article.tags
+		all_articles += TemplateObject("article",template_data, theme, select) #format_comments(article.comments, article.key().id())
 	return all_articles
 	
-def get_articles(ids=None, author=None, limit=None, bookmark=None, provider=None, view=None, user=None):
+def get_articles(ids=None, author=None, limit=None, bookmark=None, provider=None, view=None, user=None, theme=None, select=0):
 	"""Retrieves articles from Archive entity and composes HTML."""
+	
 	if not limit:
 		limit = 10
 
@@ -452,12 +497,12 @@ def get_articles(ids=None, author=None, limit=None, bookmark=None, provider=None
 
 	all_articles =''
 	for article in articles:
-		all_articles = format_article(article, all_articles)
+		all_articles = format_article(article, all_articles, theme, select)
 
 	if next:
-		all_articles += '<div class="bookmark" data-bookmark="%s" ></div>' % next
-	else:
-		all_articles += '<div class="bookmark-end">No more articles.</div>'
+		all_articles += TemplateObject("pagination",template_data,theme,select)
+	#else:
+	#	all_articles += '<div class="bookmark-end">No more articles.</div>'
 	return all_articles
 
 class TestPage(webapp2.RequestHandler):
@@ -471,12 +516,23 @@ class GetPage(webapp2.RequestHandler):
 				'content': innerHTML(page + '.html', 'body'),
 				'content_id': page,
 				}
-
 		path = os.path.join(os.path.dirname(__file__), 'index-template.html' )
 		self.response.out.write(template.render(path, template_values))
 
 class MainPage(webapp2.RequestHandler):
   def get(self):
+  	cookie_string = os.environ.get('HTTP_COOKIE')
+	if cookie_string:
+		cookie = Cookie.SimpleCookie()
+		cookie.load(cookie_string)
+		try:
+			theme = cookie['user_theme'].value
+		except:
+			theme = None
+	else:
+		theme = None
+		
+	select = 0
 	style = ''
 	#user = users.get_current_user()
 	user = oAuthUser.fromCookie()
@@ -484,33 +540,8 @@ class MainPage(webapp2.RequestHandler):
 		greeting = ('<div class="signed-in" nickname="%s"> %s <a class="sign-out no-ajax" href="%s">(sign out)</a></div>' % (user.nickname(), user.nickname(), oAuthUsers.create_logout_url("/")))
 		nickname = user.nickname()
 	else:
-		greeting = ('<a id="not-signed-in" class="sign-in" href="%s">Sign in or register</a>' % oAuthUsers.create_login_url("/"))
+		greeting = ('<a id="not-signed-in" class="sign-in" href="%s">Sign in or register</a>' % (oAuthUsers.create_login_url("/")))
 		nickname = ''
-	#user = oAuthUser.fromCookie()
-	#Pull user data from cookies
-	#error = urllib.unquote(self.request.cookies.get('error', ''))
-	#if error:
-	#	user_id = None
-	#	nickname = ''
-	#elif user:
-	#	self.response.delete_cookie('error')
-	#	error = None
-	#	nickname = user.nickname()
-	#	user_id = user.id
-	#	user_provider = user.provider
-	#else:
-	#	nickname = ''
-	#	user_id = None
-
-	#if error:
-	#	greeting = '%s: <a id="not-signed-in" class="sign-in" href="/auth">Login</a>' % (error)
-	#	nickname = ''	  
-	#elif user_id:
-	#	greeting = ('<div class="signed-in" nickname="%s"> %s <a class="sign-out no-ajax" href="%s">(sign out)</a></div>' % (nickname, nickname, "/logout"))
-	#else:
-	#	greeting = 'Sign in with: <a id="not-signed-in" class="sign-in" href="/auth">Login</a>'
-	#	nickname = ''
-	#self.response.delete_cookie('error')
 
 	content = 'No content for this URL'
 	content_id =  self.request.path[1:]
@@ -523,7 +554,8 @@ class MainPage(webapp2.RequestHandler):
 		return self.redirect('/the-archive')
 	  
 	elif self.request.path == '/article':
-		content = format_article(Articles().get_by_id(int(self.request.get('id')), parent=archive_key()), '')
+		#select needs to be picked from a file
+		content = format_article(Articles().get_by_id(int(self.request.get('id')), parent=archive_key()), '',theme,select = 1)
 
 	elif self.request.path == '/by-author':
 		author = self.request.get('author')
@@ -535,7 +567,7 @@ class MainPage(webapp2.RequestHandler):
 			else:
 				content += '<span class="author"><a class="author-link no-ajax" href="/by-author?author=%s&provider=%s">%s</a></span><br>' % (author,provider,provider)
 		content += '</div>'
-		content += get_articles(author = self.request.get('author'),provider = self.request.get('provider'))
+		content += get_articles(author = self.request.get('author'),provider = self.request.get('provider'), theme=theme,select=select)
 	elif self.request.path == '/auth':
 		content = ''
 		for provider in CONFIG:
@@ -560,13 +592,17 @@ class MainPage(webapp2.RequestHandler):
 							 
 	elif self.request.path[:12] == '/the-archive':
 		content = get_articles(limit = self.request.get('limit'),
-							bookmark = self.request.get('bookmark'))
+							bookmark = self.request.get('bookmark'),
+							theme=theme,
+							select=select)
 							 
 	elif self.request.path[:12] == '/featured':
 		content = get_articles(ids = 
 		[11006, 97006, 98006, 91006, 91004, 95001, 46003, 87006, 85006, 59001,
 		49001, 9001, 10001, 23008, 31006, 4001, 13001, 21012, 35008, 21005,
-		27001, 18002, 5001, 7001, 25001, 12002, 28011, 8002, 22002])
+		27001, 18002, 5001, 7001, 25001, 12002, 28011, 8002, 22002],
+		theme=theme,
+		select=select)
 
 	elif self.request.path == '/test':
 		content = ''
@@ -576,13 +612,17 @@ class MainPage(webapp2.RequestHandler):
 							   limit = self.request.get('limit'),
 							   bookmark = self.request.get('bookmark'),
 							   user = user,
-							   provider = user.provider)
+							   provider = user.provider,
+							   theme = theme,
+							   select = select)
 			if user.emailaddress: #get older database articles
 				content += get_articles(author = user.emailaddress,
 								   limit = self.request.get('limit'),
 								   bookmark = self.request.get('bookmark'),
 								   user = user,
-								   provider = user.provider)			
+								   provider = user.provider,
+								   theme = theme,
+								   select = select)			
 			
 		else:
 			if 'X-Requested-With' in self.request.headers:
@@ -594,18 +634,34 @@ class MainPage(webapp2.RequestHandler):
 		tree = html.parse('About-the-Art-Crime-Archive.html')
 		style = tostring(tree.xpath('//style')[0])
 		content = innerHTML('About-the-Art-Crime-Archive.html', 'body')
-  
+
+	javascripts = """
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.js"></script>
+    <script src="../static/js/jquery.fitvids.js"></script>
+	<script src='../static/js/jquery.autosize.js'></script>
+    <script src="../static/js/jquery.hint.js"></script>
+	<script src='../static/js/jquery.history.js'></script>
+    <script src="../static/js/bootstrap.min.js"></script>
+    <script src="../static/js/aca.js"></script>
+	%s
+	""" % ('')
+	
 	template_data = {
 			'content_id': content_id,
 			'content': content,
 			'nickname': nickname,
 			'greeting': greeting,
 			'style': style,
+			'javascripts': javascripts
 			}
 
-	path = os.path.join(os.path.dirname(__file__), 'index.html' )
+	path = ThemeTemplate(theme,'index.html') #os.path.join(os.path.dirname(__file__), 'index.html' )
 	self.response.headers['X-XSS-Protection'] = '0' #prevents blank embed after post
+	#try:
 	self.response.out.write(template.render(path, template_data))
+	#except: #whoops theme didn't exist
+	#	path = ThemeTemplate(None,'index.html')
+	#	self.response.out.write(template.render(path, template_data))
 
 class CreateArticleForm(webapp2.RequestHandler):
   def get(self):
@@ -645,13 +701,15 @@ class PublishArticle(webapp2.RequestHandler):
 	else:
 		article = Articles(parent=archive_key())
 
-	article.author = oAuthUsers.get_current_user().nickname()
+	user = oAuthUsers.get_current_user()
+	article.author = user.nickname()
 	article.embed = self.request.get('embed-code')
 	article.title = self.request.get('title')
 	article.content = self.request.get('content')
 	article.tags = self.request.get('tags')
 	article.view = self.request.get('view')
-	article.provider = oAuthUsers.get_current_user().provider
+	article.provider = user.provider
+	article.oauthid = user.oauthid
 	article.put()
 	if article.view == 'Preview' or article.view == 'Retract':
 	  return self.redirect('/my-articles')
