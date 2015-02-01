@@ -581,7 +581,10 @@ class MainPage(webapp2.RequestHandler):
 	  
 	elif self.request.path == '/article':
 		#select needs to be picked from a file
-		content = format_article(Articles().get_by_id(int(self.request.get('id')), parent=archive_key()), '',theme,select = 1)
+		try:
+			content = format_article(Articles().get_by_id(int(self.request.get('id')), parent=archive_key()), '',theme,select = 1)
+		except:
+			return self.redirect('/the-archive')
 
 	elif self.request.path == '/by-author':
 		author = self.request.get('author')
@@ -597,7 +600,12 @@ class MainPage(webapp2.RequestHandler):
 	elif self.request.path == '/auth':
 		content = ''
 		for provider in CONFIG:
-			content += '<a class="sign-in" href="/login/%s">%s</a><br>' % (provider,provider)
+			object = 'login-'+provider
+			login = "/login/%s" % provider
+			template_data = {
+				'login_url': login
+			}
+			content += TemplateObject(object, template_data, theme, select)
 			
 	elif self.request.path == '/logout':
 		self.response.delete_cookie('user_id')

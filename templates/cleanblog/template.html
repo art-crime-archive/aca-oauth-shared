@@ -1,5 +1,5 @@
-<div class="row" data-template-object="comment">
-	<div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+<div data-template-object="comment-list" id="comment-table-{{article_id|safe}}" class="row">
+	<div data-template-object="comment" class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 comment" id="comment-{{article_id|safe}}-{{comment_id|safe}}" article="{{article_id|safe}}" comment-id="{{comment_id|safe}}" author="{{nickname|safe}}">
 		<div class="post-preview">
 			<a href="post.html">
 				<h2 class="post-title">
@@ -9,7 +9,11 @@
 					Problems look mighty small from 150 miles up
 				</h3>
 			</a>
-			<p class="post-meta">Posted by <a href="#">Start Bootstrap</a> on September 24, 2014</p>
+			<p class="post-meta author">Posted by <a class="author-link no-ajax" href="{{article_author_link}}">{{article_author}}</a> <span class="comment-date" dir="ltr">
+					<span title="{{comment_date|date:"M d Y"}}" class="comment-relativetime">{{comment_date|timesince}} ago</span>
+				</span>
+				<span class="comment-delete delete-tag" title="delete this comment"></span>
+			</p>
 		</div>
 		<hr>
 	</div>
@@ -20,13 +24,13 @@
 		<div class="post-preview">
 			<a class="article-link no-ajax" href="{{article_link}}">
 				<h2 class="post-title">
-					{{article_title|safe}}
+					{{article_title}}
 				</h2>
 				<h3 class="post-subtitle">
 					{{article_content}}
 				</h3>
 			</a>
-			<p class="post-meta author">Posted by <a class="author-link no-ajax" href="{{article_author_link}}">{{article_author}}</a></p>
+			<p class="post-meta author">Posted by <a class="author-link no-ajax" href="{{article_author_link}}">{{article_author}}</a> <span>{{view_status|safe}} {{edit_link|safe}}</span></p>
 		</div>
 		<hr>
 	</div>
@@ -41,3 +45,63 @@
 		</ul>
 	</div>
 </div>
+
+<div class="row" data-template-object="article">
+	<!--
+    <header class="intro-header" style="background-image: url('../static/cleanblog/img/home-bg.jpg')">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                    <div class="post-heading">
+                        <h1>{{article_title}}</h1>
+						<hr class="small">
+                        <p class="post-meta author">Posted by <a class="author-link no-ajax" href="{{article_author_link}}">{{article_author}}</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+	-->
+	
+    <article>
+        <div class="container">
+			<div class="row">
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+					{{article_embed|safe}}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+					{{article_content}}
+                </div>
+            </div>
+			<div class="row">
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+					{{article_comments|safe}}
+                </div>
+            </div>
+        </div>
+    </article>
+    <hr>
+</div>
+
+<a data-template-object="login-tw" href="{{login_url}}">
+	<span class="fa-stack fa-lg">
+		<i class="fa fa-circle fa-stack-2x"></i>
+		<i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+	</span>
+</a>
+
+<a data-template-object="login-fb" href="{{login_url}}">
+	<span class="fa-stack fa-lg">
+		<i class="fa fa-circle fa-stack-2x"></i>
+		<i class="fa fa-facebook fa-stack-1x fa-inverse"></i>
+	</span>
+</a>
+
+<a data-template-object="login-gg" href="{{login_url}}">
+	<span class="fa-stack fa-lg">
+		<i class="fa fa-circle fa-stack-2x"></i>
+		<i class="fa fa-google fa-stack-1x fa-inverse"></i>
+	</span>
+</a>
