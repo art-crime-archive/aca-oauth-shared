@@ -130,9 +130,9 @@ var updateContent = function(State) {
 
   // Content update and back/forward button handler
   History.Adapter.bind(window, 'statechange', function() {
-  console.log('HAb');
+		console.log('HAb');
       updateNav(window.location.pathname);
-  console.log('after editAF ', History.getState());
+		console.log('after editAF ', History.getState());
       updateContent(History.getState());
   });
 

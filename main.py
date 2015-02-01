@@ -500,6 +500,9 @@ def get_articles(ids=None, author=None, limit=None, bookmark=None, provider=None
 		all_articles = format_article(article, all_articles, theme, select)
 
 	if next:
+		template_data = {
+			'next_url': next,
+		}
 		all_articles += TemplateObject("pagination",template_data,theme,select)
 	#else:
 	#	all_articles += '<div class="bookmark-end">No more articles.</div>'
