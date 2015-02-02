@@ -298,6 +298,19 @@ class Login(webapp2.RequestHandler):
 			elif result.error:
 				self.response.set_cookie('error', urllib.quote(result.error.message))
 				self.response.out.write(str(result.error.message))
+
+class Login(webapp2.RequestHandler):
+	def any(self, theme_name):
+		#Make a list of directory names* Check if theme_name in list
+		if theme_name:
+			if theme_name == 'cleanblog':
+				self.response.set_cookie('user_theme', theme_name)
+			elif theme_name == 'default':
+				self.response.delete_cookie('user_theme')
+			else:
+				self.response.delete_cookie('user_theme')
+		else:
+			self.response.delete_cookie('user_theme')
 				
 class Articles(db.Model):
 	"""Models an individual Archive entry"""
@@ -589,12 +602,19 @@ class MainPage(webapp2.RequestHandler):
 	elif self.request.path == '/by-author':
 		author = self.request.get('author')
 		authorprovider = self.request.get('provider')
-		content = '<div class="below-video"><span class="author"> Articles with Author Name: <a class="author-link no-ajax" href="/by-author?author=%s">%s</a> </span>' % (author, author)
+		content = '<div class="below-video"><span class="author"> Articles with Author Name: <a class="author-link" href="/by-author?author=%s">%s</a> </span>' % (author, author)
 		for provider in CONFIG:
-			if authorprovider == provider:
-				content += '<span class="author">This Author: <a class="author-link no-ajax" href="/by-author?author=%s&provider=%s">%s</a></span><br>' % (author,provider,provider)
-			else:
-				content += '<span class="author"><a class="author-link no-ajax" href="/by-author?author=%s&provider=%s">%s</a></span><br>' % (author,provider,provider)
+			object = 'login-'+provider
+			login = "/by-author?author=%s&provider=%s" % (author,provider)
+			matched = authorprovider == provider
+			if matched:
+				content += '<span>|</span>'
+			template_data = {
+				'login_url': login
+			}
+			content += TemplateObject(object, template_data, theme, select)
+			if matched:
+				content += '<span>|</span>'
 		content += '</div>'
 		content += get_articles(author = self.request.get('author'),provider = self.request.get('provider'), theme=theme,select=select)
 	elif self.request.path == '/auth':
@@ -881,6 +901,7 @@ app = webapp2.WSGIApplication([('/', MainPage),
 							   ('/auth', MainPage),
 							   ('/publish-it', PublishArticle),
                                ('/update/schema',UpdateHandler),
+							   webapp2.Route(r'/theme/<:.*>', Theme, handler_method='any'),
 							   webapp2.Route(r'/login/<:.*>', Login, handler_method='any'),
 							   webapp2.Route(r'/logout', MainPage)],
                                 debug=True)
