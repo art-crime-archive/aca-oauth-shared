@@ -311,6 +311,7 @@ class Theme(webapp2.RequestHandler):
 				self.response.delete_cookie('user_theme')
 		else:
 			self.response.delete_cookie('user_theme')
+		self.redirect('/')
 				
 class Articles(db.Model):
 	"""Models an individual Archive entry"""
