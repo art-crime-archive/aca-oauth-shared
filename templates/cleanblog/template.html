@@ -1,15 +1,10 @@
 <div data-template-object="comment-list" id="comment-table-{{article_id|safe}}" class="row">
 	<div data-template-object="comment" class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 comment" id="comment-{{article_id|safe}}-{{comment_id|safe}}" article="{{article_id|safe}}" comment-id="{{comment_id|safe}}" author="{{nickname|safe}}">
 		<div class="post-preview">
-			<a href="post.html">
-				<h2 class="post-title">
-					Man must explore, and this is exploration at its greatest
-				</h2>
-				<h3 class="post-subtitle">
-					Problems look mighty small from 150 miles up
-				</h3>
-			</a>
-			<p class="post-meta author">Posted by <a class="author-link no-ajax" href="{{article_author_link}}">{{article_author}}</a> <span class="comment-date" dir="ltr">
+			<h3 class="post-subtitle">
+				<span class="comment-display" data-template-object="comment-display">{{comment_display}}</span>
+			</h3>
+			<p class="post-meta author">Posted by <a class="author-link no-ajax" href="{{user_url|safe}}">{{nickname|safe}}</a> <span class="comment-date" dir="ltr">
 					<span title="{{comment_date|date:"M d Y"}}" class="comment-relativetime">{{comment_date|timesince}} ago</span>
 				</span>
 				<span class="comment-delete delete-tag" title="delete this comment"></span>
@@ -17,6 +12,8 @@
 		</div>
 		<hr>
 	</div>
+	<div data-template-object="comment-deleted"></div>
+	<div data-template-object="comment-hidden"></div>
 </div>
 
 <div class="row" data-template-object="article">

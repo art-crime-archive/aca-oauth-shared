@@ -414,7 +414,7 @@ def SafeTree(string):
 	except: #Wraps whatever was loaded with a <div> element
 		return fragment_fromstring(string, create_parent=True)
 	
-def format_comments(comments=None, article_id=None, theme = None):
+def format_comments(comments=None, article_id=None, theme=None, select=0):
 	template_data = {
 		  'user_activity': '',
 		  'article_id': article_id,}
@@ -479,7 +479,7 @@ def format_article(article, all_articles, theme = None, select = 0):
 		article_link = '/article?id=%s' % (article.key().id())
 		article_author_link = '/by-author?author=%s&provider=%s' % (article.author.split('@',2)[0], article.provider)
 		article_author = article.author.split('@',2)[0]
-		article_comments = format_comments(article.comments, article.key().id())
+		article_comments = format_comments(article.comments, article.key().id(), theme, select)
 		template_data = {
 		  'edit_link': edit_link,
 		  'view_status': view_status,
@@ -698,7 +698,8 @@ class MainPage(webapp2.RequestHandler):
 	<script src='../static/js/jquery.autosize.js'></script>
     <script src="../static/js/jquery.hint.js"></script>
 	<script src='../static/js/jquery.history.js'></script>
-    <script src="../static/js/bootstrap.min.js"></script>
+    <script src="../static/js/bootstrap.js"></script>
+	<script src="../static/js/ajaxHTML5.js"></script>
     <script src="../static/js/aca.js"></script>
 	%s
 	""" % ('')

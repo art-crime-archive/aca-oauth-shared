@@ -1,5 +1,6 @@
 ﻿$(document).ready(function () {
     // automatically get and show more content when user scrolls to end of page
+	/*
     $(window).scroll(function() {
         console.log('scrolling');
         var totalHeight, currentScroll, visibleHeight;        
@@ -27,6 +28,7 @@
             console.log('scrolled to end');
         }
     });
+	*/
     $.ajax ({
         url: "/ArchiveService.get_articles_by_date",
         type: "POST",
@@ -54,7 +56,7 @@
   ajaxContentReady();
 
   // If signed in, append a publish comment button when comment text is clicked.
-  $('body').on('focus', 'tfoot .comment-text', function(e) {
+  $('body').on('focus', 'tfoot .comment-text, [data-template-object="comment-text"]', function(e) {
     var form = $(this).parent();
     console.log('signed in? ', $('#not-signed-in').length)
     if (!form.find('input').length) {
@@ -129,14 +131,16 @@ var updateContent = function(State) {
 };
 
   // Content update and back/forward button handler
+  /*
   History.Adapter.bind(window, 'statechange', function() {
 		console.log('HAb');
       updateNav(window.location.pathname);
 		console.log('after editAF ', History.getState());
       updateContent(History.getState());
   });
-
+*/
   // navigation link handler
+  /*
   $('body').on('click', 'a:not([href^="/edit-article-form?"], .btn, .no-ajax)', function(e) {
    console.log('Navlink');
       var urlPath = $(this).attr('href');
@@ -144,7 +148,9 @@ var updateContent = function(State) {
       History.pushState({urlPath: urlPath}, title, urlPath);
       return false; // prevents default click action of <a ...>
   });
+  */
   // edit article
+  /*
   $('body').on('click', 'a[href^="/edit-article-form?"]', function(e) {
       var urlPath = $(this).attr('href');
       var title = $(this).text();
@@ -157,8 +163,9 @@ var updateContent = function(State) {
       History.pushState({urlPath: urlPath}, title, urlPath);
       return false; // prevents default click action of <a ...>
   });
+  */
   // edit comment
-  $('body').on('mouseenter', '.comment', function(){
+  $('body').on('mouseenter', '.comment, [data-template-object="comment"]', function(){
       var user = $('.signed-in').attr('nickname').split('@')[0];
       var comment_author = $(this).attr('author');
       if (user == comment_author){
@@ -170,7 +177,7 @@ var updateContent = function(State) {
         console.log($(this));
         $(this.form).data('clicked', this.value);
   });
-  $('body').on('click', '.comment', 'a:not(.no-ajax)', function(){
+  $('body').on('click', '.comment, [data-template-object="comment"]', 'a:not(.no-ajax)', function(){
       // create and show comment-edit form if comment is by signed in user
       var user = $('.signed-in').attr('nickname').split('@')[0];
       var comment_author = $(this).attr('author');
@@ -191,20 +198,20 @@ var updateContent = function(State) {
         $(this).next().find('textarea').click();
       }
   });
-  $('body').on('click', '.comment-edit', function(){
+  $('body').on('click', '.comment-edit, [data-template-object="comment-edit"]', function(){
       // user has clicked into edit comment
         console.log('in .comment-edit', $(this).find('input[class="publish"]').length);
       if (!$(this).find('input[class="publish"]').length) {
           $(this).find('.comment-edit-form').append('<div><input class="publish" id="publish-it" name="update" type="submit" value="Update" style="display: inline;" /><input class="publish" name="update" id="delete-it" type="submit" value="Delete" style="display: inline;"/></div>');
        }
   });
-  $('body').on('mouseleave', '.comment-edit', function(){
+  $('body').on('mouseleave', '.comment-edit, [data-template-object="comment-edit"]', function(){
       if ($(this).find('textarea').attr('title') == $(this).find('textarea').val()) {
         $(this).prev().attr('class', 'comment');
         $(this).remove();
       }
   });
-  $('body').on('submit', '.comment-form', function(e) {
+  $('body').on('submit', '.comment-form, [data-template-object="comment-form"]', function(e) {
     var article_id = $(this).attr('article');
     var $textarea = $(this).find('textarea');
     var text = $textarea.val();
@@ -236,7 +243,7 @@ var updateContent = function(State) {
     $($(this).find('div')).remove();
     return false;
   });
-  $('body').on('submit', '.comment-edit-form', function(e) {
+  $('body').on('submit', '.comment-edit-form, [data-template-object="comment-edit-form"]', function(e) {
     var article_id = $(this).attr('article');
     var comment_id = $(this).attr('comment-id');
     var $textarea = $(this).find('textarea');

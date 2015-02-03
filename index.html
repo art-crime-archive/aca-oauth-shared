@@ -82,7 +82,7 @@
 
     <div class="row-fluid">
       <div class="span9">
-      <div id="content" class="center-stage">
+      <div id="content" data-template-object="content" class="center-stage">
         <div id="{{content_id|safe}}">{{content|safe}}</div>
       </div>
       </div>
@@ -95,17 +95,7 @@
     <div id="ajax_content" class="hidden"></div>
     <!-- ================================================== -->
     <!-- javascript placed at the end of the document so the pages load faster -->
-	<script id="my-template" type="text/x-template">
-	</script>
-	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.js"></script>
-    <script src="../static/js/jquery.fitvids.js"></script>
-		<script src='../static/js/jquery.autosize.js'></script>
-    <script src="../static/js/jquery.hint.js"></script>
-
-		<script src='../static/js/jquery.history.js'></script>
-    <script src="../static/js/bootstrap.js"></script>
-    <script src="../static/js/aca.js"></script>
-    <!-- Analytics
-    ================================================== -->
+	<script id="my-template" type="text/x-template"></script>
+	{{javascripts|safe}}
   </body>
 </html>

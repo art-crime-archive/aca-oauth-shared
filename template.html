@@ -17,7 +17,7 @@
 		<td class="comment-display">
 			<div>
 				<a href="{{user_url|safe}}" title="{{user_activity|safe}}" class="no-ajax comment-user">{{nickname|safe}}</a>
-				<span class="comment-display">{{comment_display}}</span><br />
+				<span class="comment-display" data-template-object="comment-display">{{comment_display}}</span><br />
 				<span class="comment-date" dir="ltr">
 					<span title="{{comment_date|date:"M d Y"}}" class="comment-relativetime">{{comment_date|timesince}} ago</span>
 				</span>
