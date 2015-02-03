@@ -116,6 +116,7 @@ class oAuthUser:
 						article.provider = self.provider
 						article.put()
 					return True
+			return False
 		elif comments: #save network time by doing algorithm in bulk
 			commentid = 0
 			for comment in comments:
@@ -131,6 +132,13 @@ class oAuthUser:
 				#Format: Nickname()@oauthid Dan's Method
 				if commentAuthor and commentTail == self.oauthid:
 					isAuthor = True
+				elif commentAuthor == self.name: #Alex's Method (BAD! Username Overlap definitely needs Update!)
+					isAuthor = True
+					if shouldUpdate:
+						pickled = db.Text(dumps([commentObj[0], self.oAuthNickname(), commentObj[2]]))
+						article.comments[commentid] = pickled
+					else:
+						return isAuthor
 				elif self.emailaddress: #Old GAE Account Method
 					if commentAuthor == self.emailaddress or commentAuthor == self.emailaddress.split('@')[0]:
 						isAuthor = True
@@ -139,13 +147,6 @@ class oAuthUser:
 							article.comments[commentid] = pickled
 						else:
 							return isAuthor
-				elif commentAuthor == self.name: #Alex's Method (BAD! Username Overlap definitely needs Update!)
-					isAuthor = True
-					if shouldUpdate:
-						pickled = db.Text(dumps([commentObj[0], self.oAuthNickname(), commentObj[2]]))
-						article.comments[commentid] = pickled
-					else:
-						return isAuthor
 				commentid += 1
 		elif comment: #do one comment
 			commentObj = loads(str(comment))
@@ -157,6 +158,13 @@ class oAuthUser:
 			#Merge match
 			if commentAuthor and commentTail == self.oauthid:
 				isAuthor = True
+			elif commentAuthor == self.name:
+				isAuthor = True
+				if shouldUpdate:
+					pickled = db.Text(dumps([commentObj[0], self.oAuthNickname(), commentObj[2]]))
+					article.comments[commentid] = pickled
+				else:
+					return isAuthor
 			elif self.emailaddress: #old matches
 				if commentAuthor == self.emailaddress or commentAuthor == self.emailaddress.split('@')[0]:
 					isAuthor = True
@@ -165,13 +173,6 @@ class oAuthUser:
 						article.comments[commentid] = pickled
 					else:
 						return isAuthor
-			elif commentAuthor == self.name:
-				isAuthor = True
-				if shouldUpdate:
-					pickled = db.Text(dumps([commentObj[0], self.oAuthNickname(), commentObj[2]]))
-					article.comments[commentid] = pickled
-				else:
-					return isAuthor
 		if shouldUpdate:
 			article.put()
 		return isAuthor
