@@ -358,14 +358,14 @@ def innerHTML(file, tag):
 
 def getTheme():
 	theme = None
-  	cookie_string = os.environ.get('HTTP_COOKIE')
-	if cookie_string:
-		cookie = Cookie.SimpleCookie()
-		cookie.load(cookie_string)
-		try:
-			theme = cookie['user_theme'].value
-		except:
-			theme = None
+  	#cookie_string = os.environ.get('HTTP_COOKIE')
+	#if cookie_string:
+	#	cookie = Cookie.SimpleCookie()
+	#	cookie.load(cookie_string)
+	#	try:
+	#		theme = cookie['user_theme'].value
+	#	except:
+	#		theme = None
 	return theme
 
 def getRedirect():
