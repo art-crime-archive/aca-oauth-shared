@@ -1,7 +1,6 @@
-﻿
-
-$(document).ready(function () {
+﻿$(document).ready(function () {
     // automatically get and show more content when user scrolls to end of page
+	
     $(window).scroll(function() {
         console.log('scrolling');
         var totalHeight, currentScroll, visibleHeight;        
@@ -29,6 +28,7 @@ $(document).ready(function () {
             console.log('scrolled to end');
         }
     });
+	
     $.ajax ({
         url: "/ArchiveService.get_articles_by_date",
         type: "POST",
@@ -56,7 +56,7 @@ $(document).ready(function () {
   ajaxContentReady();
 
   // If signed in, append a publish comment button when comment text is clicked.
-  $('body').on('focus', 'tfoot .comment-text', function(e) {
+  $('body').on('focus', 'tfoot .comment-text, [data-template-object="comment-text"]', function(e) {
     var form = $(this).parent();
     console.log('signed in? ', $('#not-signed-in').length)
     if (!form.find('input').length) {
@@ -70,7 +70,7 @@ $(document).ready(function () {
     }
   });
 
-  $('body').on('blur', '.comment-text', function(e) {
+  $('body').on('blur', '.comment-text, [data-template-object="comment-text"]', function(e) {
     var form = $(this).parent()
     if ($(this).val().trim() == '') {
         // user did not add comment, remove the div with publish comment button
@@ -131,14 +131,16 @@ var updateContent = function(State) {
 };
 
   // Content update and back/forward button handler
+  
   History.Adapter.bind(window, 'statechange', function() {
-  console.log('HAb');
+		console.log('HAb');
       updateNav(window.location.pathname);
-  console.log('after editAF ', History.getState());
+		console.log('after editAF ', History.getState());
       updateContent(History.getState());
   });
 
   // navigation link handler
+
   $('body').on('click', 'a:not([href^="/edit-article-form?"], .btn, .no-ajax)', function(e) {
    console.log('Navlink');
       var urlPath = $(this).attr('href');
@@ -146,7 +148,9 @@ var updateContent = function(State) {
       History.pushState({urlPath: urlPath}, title, urlPath);
       return false; // prevents default click action of <a ...>
   });
+  
   // edit article
+  
   $('body').on('click', 'a[href^="/edit-article-form?"]', function(e) {
       var urlPath = $(this).attr('href');
       var title = $(this).text();
@@ -159,8 +163,9 @@ var updateContent = function(State) {
       History.pushState({urlPath: urlPath}, title, urlPath);
       return false; // prevents default click action of <a ...>
   });
+  
   // edit comment
-  $('body').on('mouseenter', '.comment', function(){
+  $('body').on('mouseenter', '.comment, [data-template-object="comment"]', function(){
       var user = $('.signed-in').attr('nickname').split('@')[0];
       var comment_author = $(this).attr('author');
       if (user == comment_author){

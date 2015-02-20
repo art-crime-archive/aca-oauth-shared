@@ -19,7 +19,7 @@
 		// Prepare Variables
 		var
 			/* Application Specific Variables */
-			contentSelector = '[data-template-object="content"]';/*,article:first,.article:first,.post:first',*/
+			contentSelector = '#content,article:first,.article:first,.post:first',
 			$content = $(contentSelector).filter(':first'),
 			contentNode = $content.get(0),
 			$menu = $('#menu,#nav,nav:first,.nav:first').filter(':first'),
@@ -75,7 +75,7 @@
 			var $this = $(this);
 			
 			// Ajaxify
-			$this.find('a:internal:not(.no-ajax)').click(function(event){
+			$this.find('a:internal:not(.no-ajaxy,.no-ajax,.btn),input:not([type="submit"])').click(function(event){
 				// Prepare
 				var
 					$this = $(this),
@@ -113,7 +113,7 @@
 			// Animating to opacity to 0 still keeps the element's height intact
 			// Which prevents that annoying pop bang issue when loading in new content
 			$content.animate({opacity:0},800);
-			//'.document-body:first' ordinarily we use the target's body...I guess?
+			
 			// Ajax Request the Traditional Page
 			$.ajax({
 				url: url,
@@ -121,7 +121,7 @@
 					// Prepare
 					var
 						$data = $(documentHtml(data)),
-						$dataBody = $data.find(contentSelector),
+						$dataBody = $data.find('.document-body:first'),
 						$dataContent = $dataBody.find(contentSelector).filter(':first'),
 						$menuChildren, contentHtml, $scripts;
 					

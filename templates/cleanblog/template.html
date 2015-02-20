@@ -1,20 +1,49 @@
-<div data-template-object="comment-list" id="comment-table-{{article_id|safe}}" class="row">
-	<div data-template-object="comment" class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 comment" id="comment-{{article_id|safe}}-{{comment_id|safe}}" article="{{article_id|safe}}" comment-id="{{comment_id|safe}}" author="{{nickname|safe}}">
-		<div class="post-preview">
-			<h3 class="post-subtitle">
-				<span class="comment-display" data-template-object="comment-display">{{comment_display}}</span>
-			</h3>
-			<p class="post-meta author">Posted by <a class="author-link no-ajax" href="{{user_url|safe}}">{{nickname|safe}}</a> <span class="comment-date" dir="ltr">
+<table>
+  <tfoot data-template-object="comment-add">
+      <tr class="comment-add-{{article_id|safe}}">
+        <td></td>
+        <td>
+          <form class="comment-form" name="comment-form" article="{{article_id|safe}}" action="none" method="post">
+            <p>
+              <textarea id="comment-text-{{article_id|safe}}" class="comment-text" name="comment-text" title="add your comment..."></textarea>
+            </p>
+          </form>
+        </td>
+      </tr>
+  </tfoot>
+  <tbody data-template-object="comment-list" id="comment-table-{{article_id|safe}}">
+    <tr data-template-object="comment" class="comment" id="comment-{{article_id|safe}}-{{comment_id|safe}}" article="{{article_id|safe}}" comment-id="{{comment_id|safe}}" author="{{nickname|safe}}" style="">
+		<td class="comment-info"></td>
+		<td class="comment-display">
+			<div>
+				<a href="{{user_url|safe}}" title="{{user_activity|safe}}" class="no-ajax comment-user">{{nickname|safe}}</a>
+				<span class="comment-display" data-template-object="comment-display">{{comment_display}}</span><br />
+				<span class="comment-date" dir="ltr">
 					<span title="{{comment_date|date:"M d Y"}}" class="comment-relativetime">{{comment_date|timesince}} ago</span>
 				</span>
 				<span class="comment-delete delete-tag" title="delete this comment"></span>
-			</p>
-		</div>
-		<hr>
-	</div>
-	<div data-template-object="comment-deleted"></div>
-	<div data-template-object="comment-hidden"></div>
-</div>
+			</div>
+		</td>
+    </tr>
+    <tr data-template-object="comment-deleted" class="comment deleted" id="comment-{{article_id|safe}}-{{comment_id|safe}}"  article="{{article_id|safe}}" comment-id="{{comment_id|safe}}">
+    </tr>
+    <tr data-template-object="comment-hidden" class="comment hidden" id="comment-{{article_id|safe}}"  article="{{article_id|safe}}" comment-id="{{comment_id|safe}}" author="{{nickname|safe}}" >
+      <td class="comment-info"></td>
+      <td class="comment-display">
+	  <div>
+		  <a href="" title="" class="comment-user"></a> 
+		  <span class="comment-display"></span>
+		  <br />
+		  <span class="comment-date" dir="ltr">
+		  <span title="comment date" class="comment-relativetime">0 minutes ago</span>
+		  </a>
+		  </span>
+		  <span class="comment-delete delete-tag" title="delete this comment"></span>
+	  </div>
+	  </td>
+    </tr>
+  </tbody>
+</table>
 
 <div class="row" data-template-object="article">
 	<div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
@@ -86,3 +115,50 @@
 		<i class="fa fa-google fa-stack-1x fa-inverse"></i>
 	</span>
 </a>
+
+<!--
+<div>
+	<div data-template-object="comment-add" class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 comment">
+		<div class="post-preview comment-add-{{article_id|safe}}">
+			<div></div>
+			<h3 class="post-subtitle">
+			  <form class="comment-form form-group" name="comment-form" article="{{article_id|safe}}" action="none" method="post">
+				<p>
+				  <textarea id="comment-text-{{article_id|safe}}" class="comment-text" name="comment-text" title="add your comment..."></textarea>
+				</p>
+			  </form>
+			</h3>
+		</div>
+		<hr>
+	</div>
+	<div data-template-object="comment-list" id="comment-table-{{article_id|safe}}" class="row">
+		<div data-template-object="comment" class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 comment" id="comment-{{article_id|safe}}-{{comment_id|safe}}" article="{{article_id|safe}}" comment-id="{{comment_id|safe}}" author="{{nickname|safe}}">
+			<div class="post-preview">
+				<h3 class="post-subtitle">
+					<span class="comment-display" data-template-object="comment-display">{{comment_display}}</span>
+				</h3>
+				<p class="post-meta author">Posted by <a class="author-link no-ajax" href="{{user_url|safe}}">{{nickname|safe}}</a> <span class="comment-date" dir="ltr">
+						<span title="{{comment_date|date:"M d Y"}}" class="comment-relativetime">{{comment_date|timesince}} ago</span>
+					</span>
+					<span class="comment-delete delete-tag" title="delete this comment"></span>
+				</p>
+			</div>
+			<hr>
+		</div>
+		<div data-template-object="comment-deleted" class="comment deleted" id="comment-{{article_id|safe}}-{{comment_id|safe}}"  article="{{article_id|safe}}" comment-id="{{comment_id|safe}}"></div>
+		<div data-template-object="comment-hidden" class="comment hidden" id="comment-{{article_id|safe}}"  article="{{article_id|safe}}" comment-id="{{comment_id|safe}}" author="{{nickname|safe}}">
+			<div class="post-preview">
+				<h3 class="post-subtitle">
+					<span class="comment-display" data-template-object="comment-display">{{comment_display}}</span>
+				</h3>
+				<p class="post-meta author">Posted by <a class="author-link no-ajax" href="{{user_url|safe}}">{{nickname|safe}}</a> <span class="comment-date" dir="ltr">
+						<span title="comment date" class="comment-relativetime">{{comment_date|timesince}} ago</span>
+					</span>
+					<span class="comment-delete delete-tag" title="delete this comment"></span>
+				</p>
+			</div>
+			<hr>		
+		</div>
+	</div>
+</div>
+-->

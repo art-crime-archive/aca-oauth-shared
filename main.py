@@ -37,16 +37,6 @@ import update_schema
 
 authomatic = Authomatic(config=CONFIG, secret='some random secret string')
 #Authomatic Integration - Alex Anderson
-def isGmail(string):
-	if string:
-		if "@gmail.com" in string:
-			return True
-		#google auth also allows yahoo so this counts too
-		elif "@yahoo.com" in string:
-			return True
-		return False
-	else: #Prevent Twitter crash (eg no email...definitely false)
-		return False
 #new user model
 class oAuthUser:
 	def __init__(self,user_id,user_name,user_email,user_provider,user_credentials):
@@ -176,7 +166,7 @@ class oAuthUser:
 		if shouldUpdate:
 			article.put()
 		return isAuthor
-
+		
 	def isAdmin(self):
 		qry = AdminUser.query(AdminUser.name == self.name, AdminUser.provider == self.provider)
 		for adminuser in qry:
@@ -261,12 +251,12 @@ class Login(webapp2.RequestHandler):
 	def any(self, provider_name):
 		#make sure we're not already logged in! don't waste api calls!
 		user = oAuthUser.fromCookie()
-		redirect = getRedirect()
+		#redirect = getRedirect()
 		self.response.delete_cookie('user_redirect')
 		if user:
 			if user.name and user.provider:
 				self.response.delete_cookie('error')
-				self.redirect(redirect)
+				self.redirect('/')
 		
 		# It all begins with login.
 		result = authomatic.login(Webapp2Adapter(self), provider_name)
@@ -295,7 +285,7 @@ class Login(webapp2.RequestHandler):
 					# Serialize credentials and store it as well.
 					serialized_credentials = result.user.credentials.serialize()
 					self.response.set_cookie('credentials', serialized_credentials)
-				self.redirect(redirect)
+				self.redirect('/')
 			elif result.error:
 				self.response.set_cookie('error', urllib.quote(result.error.message))
 				self.response.out.write(str(result.error.message))
@@ -636,11 +626,11 @@ class MainPage(webapp2.RequestHandler):
 		self.response.delete_cookie('credentials')
 		self.response.delete_cookie('user_provider')
 		self.response.delete_cookie('error')
-		redirect = getRedirect()
+		#redirect = getRedirect()
 		#content = ''
 		#for provider in CONFIG:
 		#	content += '<a href="/login/%s">%s</a><br>' % (provider,provider)
-		self.redirect(redirect);
+		self.redirect('/auth');
 	
 	elif self.request.path[:12] == '/curated':
 		for id in open('archive-list.txt', 'r').read().split():
@@ -811,7 +801,9 @@ class PublishArticle(webapp2.RequestHandler):
 	else:
 		article = Articles(parent=archive_key())
 
+	logging.info('I am checking the user')
 	user = oAuthUsers.get_current_user()
+	logging.info('The user is named '+user.nickname())
 	article.author = user.nickname()
 	article.embed = self.request.get('embed-code')
 	article.title = self.request.get('title')
@@ -820,7 +812,9 @@ class PublishArticle(webapp2.RequestHandler):
 	article.view = self.request.get('view')
 	article.provider = user.provider
 	article.oauthid = user.oauthid
+	logging.info('Updating')
 	article.put()
+	logging.info('Update Sent')
 	if article.view == 'Preview' or article.view == 'Retract':
 	  return self.redirect('/my-articles')
 	return self.redirect('/')
